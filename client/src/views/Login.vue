@@ -55,15 +55,15 @@ export default {
       const { push } = this.$router;
 
       // Client side check that username fits criteria
-      if (
-        !/[A-Za-z]/.test(this.username) ||
-        !/[0-9]/.test(this.username) ||
-        this.username.length < 3
-      ) {
-        this.msg =
-          "Username must be at least 3 characters long, and contain at least one letter and one number";
-        return;
-      }
+      // if (
+      //   !/[A-Za-z]/.test(this.username) ||
+      //   !/[0-9]/.test(this.username) ||
+      //   this.username.length < 3
+      // ) {
+      //   this.msg =
+      //     "Username must be at least 3 characters long, and contain at least one letter and one number";
+      //   return;
+      // }
 
       // Make an ajax post request to server with login details as request body
       fetch("/api/login", {
