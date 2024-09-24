@@ -1,35 +1,38 @@
 <template>
-  <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-    <button
-      class="navbar-toggler mx-2 mb-2"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#navbarNav"
-    >
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div id="navbarNav" class="collapse navbar-collapse mx-2">
-      <ul class="navbar-nav">
-        <li v-if="$store.state.authenticated === false" class="nav-item">
-          <a class="nav-link" href="#" @click="redirect('/login')">Login</a>
-        </li>
-        <li v-if="$store.state.authenticated === true" class="nav-item">
-          <a class="nav-link" href="#" @click="redirect('/admin')">{{
-            $store.state.username
-          }}</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#" @click="redirect('/timeslots')"
-            >Show available times</a
-          >
-        </li>
-        <li v-if="$store.state.authenticated === true" class="nav-item">
-          <a class="nav-link" href="#" @click="logout()">Sign out</a>
-        </li>
-      </ul>
+  <nav v-if="showNavbar" class="navbar navbar-expand-md navbar-dark">
+    <div class="container-fluid">
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="navbarNav" class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li v-if="$store.state.authenticated === false" class="nav-item">
+            <a class="nav-link" href="#" @click="redirect('/login')">Login</a>
+          </li>
+          <li v-if="$store.state.authenticated === false" class="nav-item">
+            <a class="nav-link" href="#" @click="redirect('/signup')">Sign up</a>
+          </li>
+          <li v-if="$store.state.authenticated === true" class="nav-item">
+            <a class="nav-link" href="#" @click="redirect('/admin')">{{
+              $store.state.username
+            }}</a>
+          </li>
+          <li v-if="$store.state.authenticated === true" class="nav-item">
+            <a class="nav-link" href="#" @click="logout()">Sign out</a>
+          </li>
+        </ul>
+      </div>
     </div>
   </nav>
-  <section class="container-fluid py-4">
+  <section class="container-fluid py-3">
     <router-view />
   </section>
 </template>
@@ -45,6 +48,12 @@ export default {
   data: () => ({
     socket: io(/* socket.io options */).connect(),
   }),
+  computed: {
+    showNavbar() {
+      // Hide the navbar on routes that start with '/requestsong/'
+      return !/^\/requestsong\/.+/.test(this.$route.path);
+    },
+  },
   mounted() {
     const { commit, getters } = this.$store;
     const { push } = this.$router;
