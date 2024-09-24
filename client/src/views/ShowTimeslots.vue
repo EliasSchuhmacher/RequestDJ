@@ -2,7 +2,7 @@
   <div class="row">
     <div class="col"></div>
     <div class="col-sm-6">
-      <h3>All timeslots:</h3>
+      <h3>Song Requests:</h3>
       <div class="list-group">
         <button
           v-for="timeslot in $store.state.timeslots"
