@@ -1,7 +1,7 @@
 <template>
   <div class="row pb-3">
     <div class="col d-flex justify-content-center">
-      <h1>Administrator login</h1>
+      <h1>DJ login</h1>
     </div>
   </div>
   <div class="row">
