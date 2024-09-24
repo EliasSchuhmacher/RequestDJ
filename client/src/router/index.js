@@ -1,0 +1,46 @@
+import { createRouter, createWebHistory } from "vue-router";
+import store from "../store";
+import Login from "../views/Login.vue";
+import Admin from "../views/Admin.vue";
+import ShowTimeslots from "../views/ShowTimeslots.vue";
+import Booking from "../views/Booking.vue";
+
+const routes = [
+  {
+    path: "/",
+    redirect: "/login",
+  },
+  {
+    path: "/login",
+    component: Login,
+  },
+  {
+    path: "/admin",
+    component: Admin,
+  },
+  {
+    path: "/timeslots",
+    component: ShowTimeslots,
+  },
+  {
+    path: "/booking",
+    component: Booking,
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+});
+
+// Setup authentication guard.
+router.beforeEach((to, from, next) => {
+  if (to.path === "/admin" && !store.state.authenticated) {
+    console.info("Unauthenticated user. Redirecting to login page.");
+    next("/login");
+  } else {
+    next();
+  }
+});
+
+export default router;
