@@ -81,6 +81,51 @@ router.post("/login", async (req, res) => {
   });
 });
 
+router.post("/signup", async (req, res) => {
+  const { username, password } = req.body;
+
+  // Verify request data
+  if (!username || !password) {
+    res.status(400).json({ message: "Request missing fields" });
+    return;
+  }
+
+  // Check if the user already exists
+  const existingUser = await db.get(
+    "SELECT name FROM assistants WHERE name=?",
+    username
+  );
+
+  if (existingUser) {
+    // User already exists bitch
+    res.status(409).json({ message: "User already exists" });
+    return;
+  }
+
+  // Hash the password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Insert the new user into the database
+  await db.run(
+    "INSERT INTO assistants (name, password) VALUES (?, ?)",
+    [username, hashedPassword]
+  );
+
+  // Authenticate the user
+  req.session.authenticated = true;
+  req.session.user = username;
+
+  req.session.save((error) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error saving session" });
+    } else {
+      console.debug(`Saved and authenticated new user: ${username}`);
+      res.status(201).json({ authenticated: true });
+    }
+  });
+});
+
 router.get("/sessionStatus", (req, res) => {
   Model.storeLongPollRequest(req.sessionID, req, res);
 });
