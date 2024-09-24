@@ -4,6 +4,7 @@ import Login from "../views/Login.vue";
 import Admin from "../views/Admin.vue";
 import ShowTimeslots from "../views/ShowTimeslots.vue";
 import Booking from "../views/Booking.vue";
+import SignupForm from "../views/SignupForm.vue";
 
 const routes = [
   {
@@ -13,6 +14,10 @@ const routes = [
   {
     path: "/login",
     component: Login,
+  },
+  {
+    path: "/signup",
+    component: SignupForm,
   },
   {
     path: "/admin",
