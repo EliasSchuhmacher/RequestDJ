@@ -28,6 +28,17 @@ router.get("/timeslots", async (req, res) => {
   res.status(200).json({ timeslots });
 });
 
+// Create an endpoint for retrieving song requests for a specific user
+router.get("/songrequests/:id", async (req, res) => {
+  const { id } = req.params;
+  const songRequests = await db.all(
+    "SELECT * FROM songrequests WHERE dj_username=?",
+    id
+  );
+
+  res.status(200).json({ songRequests });
+});
+
 // Booking a time:
 router.post("/timeslots", async (req, res) => {
   const { name, timeslotId } = req.body;

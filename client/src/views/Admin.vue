@@ -30,17 +30,18 @@
       </div>
       <div class="list-group">
         <button
-          v-for="timeslot in $store.getters.getAssistantTimeslots"
-          :key="timeslot.time"
+          v-for="songRequest in $store.getters.getSongRequests"
+          :key="songRequest.request_id"
           type="button"
           class="list-group-item list-group-item-action my-2 py-2 shadow"
         >
-          <strong>{{ timeslot.time }}</strong> @{{ timeslot.bookedBy }}
+          <strong>Song:</strong> {{ songRequest.song_title }}
+          by {{ songRequest.artist_name }}
           <button
             type="button"
             class="btn-close float-end"
             aria-label="Close"
-            @click="submitRemove(timeslot.id)"
+            @click="submitRemove(songRequest.request_id)"
           ></button>
         </button>
       </div>
@@ -58,16 +59,17 @@ export default {
   }),
   async mounted() {
     const { commit } = this.$store;
-    const res = await fetch(`/api/timeslots`);
-    const { timeslots } = await res.json();
+    const resTimeslots = await fetch(`/api/timeslots`);
+    const { timeslots } = await resTimeslots.json();
+    
+    const resSongRequests = await fetch(`/api/songRequests/${this.$store.state.username}`);
+    const { songRequests } = await resSongRequests.json();
 
     // Update the store with the fetched timeslots
     commit("setTimeslots", timeslots);
+    commit("setSongRequests", songRequests);
   },
   methods: {
-    redirect(name) {
-      this.$router.push(`/rooms/${name}`);
-    },
     submitTime() {
       fetch("/api/newtime", {
         method: "POST",

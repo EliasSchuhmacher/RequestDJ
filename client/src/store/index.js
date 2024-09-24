@@ -5,6 +5,7 @@ export default createStore({
     authenticated: false,
     username: "",
     timeslots: [],
+    songRequests: [],
     selectedBookingTimeslot: "",
   },
   getters: {
@@ -17,6 +18,9 @@ export default createStore({
     getAssistantTimeslots(state) {
       return state.timeslots.filter((e) => e.assistantName === state.username);
     },
+    getSongRequests(state) {
+      return state.SongRequests;
+    }
   },
   mutations: {
     setAuthenticated(state, authenticated) {
@@ -28,6 +32,9 @@ export default createStore({
     setTimeslots(state, timeslots) {
       state.timeslots = timeslots;
       state.timeslots.sort((a, b) => a.time.localeCompare(b.time));
+    },
+    setSongRequests(state, songRequests) {
+      state.SongRequests = songRequests;
     },
     setSelectedBookingTimeslot(state, timeslot) {
       state.selectedBookingTimeslot = timeslot;

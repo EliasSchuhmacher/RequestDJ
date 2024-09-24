@@ -67,7 +67,7 @@ router.post("/login", async (req, res) => {
       req.session.user = username;
 
       // Start a session timeout timer:
-      Model.resetSessionTimeout(req.sessionID, req.session);
+      // Model.resetSessionTimeout(req.sessionID, req.session);
 
       req.session.save((error) => {
         if (error) console.error(error);
