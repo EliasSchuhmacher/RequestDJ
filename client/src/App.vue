@@ -68,7 +68,7 @@ export default {
     this.socket.on("remove", (id) => commit("removeTimeslot", id));
 
     // Make first long poll request:
-    this.longPoll();
+    // this.longPoll();
     /* this.socket.on("inactivityLogout", () => {
       commit("setAuthenticated", false);
       push("/login");
@@ -95,8 +95,8 @@ export default {
       .catch(console.error);
 
     // BONUS 4X send "activity" message every time the user clicks or presses a button.
-    window.addEventListener("mousedown", this.notifyActivity);
-    window.addEventListener("keydown", this.notifyActivity);
+    // window.addEventListener("mousedown", this.notifyActivity);
+    // window.addEventListener("keydown", this.notifyActivity);
   },
   methods: {
     redirect(target) {
