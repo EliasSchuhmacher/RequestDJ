@@ -9,42 +9,24 @@
   <div class="row">
     <div class="col"></div>
     <div class="col-sm-6">
-      <div class="card shadow">
-        <div class="card-header">Add new timeslot</div>
-        <div class="card-body">
-          <form @submit.prevent="submitTime()">
-            <label class="form-label" for="timepicker"
-              >Select a time: &nbsp;&nbsp;</label
-            >
-            <input
-              id="timepicker"
-              v-model="newtime"
-              type="time"
-              name="timeslot"
-            />
-            <button type="submit" class="float-end btn btn-primary">
-              Submit
-            </button>
-          </form>
-        </div>
-      </div>
-      <div class="list-group">
-        <button
-          v-for="songRequest in $store.getters.getSongRequests"
-          :key="songRequest.request_id"
-          type="button"
-          class="list-group-item list-group-item-action my-2 py-2 shadow"
+      <p 
+        v-if="$store.state.songRequests.length === 0"
+        class="lead fst-italic mt-3">Waiting for requests...</p>
+        <div
+          v-for="songRequest in $store.state.songRequests"
+          :key="songRequest.id"
+          class="card my-2 py-4 shadow rounded"
         >
-          <strong>Song:</strong> {{ songRequest.song_title }}
-          by {{ songRequest.artist_name }}
-          <button
-            type="button"
-            class="btn-close float-end"
-            aria-label="Close"
-            @click="submitRemove(songRequest.request_id)"
-          ></button>
-        </button>
-      </div>
+          <div class="px-3 d-flex justify-content-between align-items-center">
+            <div v-if="songRequest.song_title" >
+              <i class="fas fa-music me-3"></i><strong>{{ songRequest.song_title }}</strong>
+              <span v-if="songRequest.song_artist"> by {{ songRequest.song_artist }} </span>
+            </div>
+            <div v-else>
+              <i class="fas fa-user me-3"></i><strong>{{ songRequest.song_artist }}</strong>
+            </div>
+          </div>
+        </div>
     </div>
     <div class="col"></div>
   </div>
@@ -62,7 +44,7 @@ export default {
     const resTimeslots = await fetch(`/api/timeslots`);
     const { timeslots } = await resTimeslots.json();
     
-    const resSongRequests = await fetch(`/api/songRequests/${this.$store.state.username}`);
+    const resSongRequests = await fetch(`/api/songrequests/${this.$store.state.username}`);
     const { songRequests } = await resSongRequests.json();
 
     // Update the store with the fetched timeslots

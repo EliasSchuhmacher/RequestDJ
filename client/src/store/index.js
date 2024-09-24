@@ -19,7 +19,7 @@ export default createStore({
       return state.timeslots.filter((e) => e.assistantName === state.username);
     },
     getSongRequests(state) {
-      return state.SongRequests;
+      return state.songRequests;
     }
   },
   mutations: {
@@ -34,7 +34,7 @@ export default createStore({
       state.timeslots.sort((a, b) => a.time.localeCompare(b.time));
     },
     setSongRequests(state, songRequests) {
-      state.SongRequests = songRequests;
+      state.songRequests = songRequests;
     },
     setSelectedBookingTimeslot(state, timeslot) {
       state.selectedBookingTimeslot = timeslot;
