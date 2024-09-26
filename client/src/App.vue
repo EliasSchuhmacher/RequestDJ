@@ -28,6 +28,9 @@
           <li v-if="$store.state.authenticated === true" class="nav-item">
             <a class="nav-link" href="#" @click="logout()">Sign out</a>
           </li>
+          <li v-if="$store.state.authenticated === true" class="nav-item">
+            <a class="nav-link" href="#" @click="generateQRCode()">Generate QR Code</a>
+          </li>
         </ul>
       </div>
     </div>
@@ -127,6 +130,24 @@ export default {
         console.log("User activity detected, notifying server");
         this.socket.send("activity");
       }
+    },
+    generateQRCode() {
+      // ENTER YOUR WIFI LOCAL IP HERE (temporary solution):
+      const localip = "";
+      // const localip = "192.168.1.121";
+
+      if (!localip) {
+        // eslint-disable-next-line no-alert
+        alert("I App.vue, ändra variabeln 'localip' till din lokala IP-adress för att detta ska fungera (temporär lösning)");
+        return;
+      }
+      const data = encodeURIComponent(`http://${localip}:8989/requestsong/${this.$store.state.username}`);      // const size = 300;
+      // const config = encodeURIComponent(JSON.stringify({}));
+      // const file = "png";
+      // const download = false;
+
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`;
+      window.open(qrCodeUrl, "_blank");
     },
     longPoll() {
       const { commit } = this.$store;
