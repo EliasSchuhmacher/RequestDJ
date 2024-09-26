@@ -11,7 +11,9 @@
     <div class="col-sm-6">
       <p 
         v-if="$store.state.songRequests.length === 0"
-        class="lead fst-italic mt-3">Waiting for requests...</p>
+        class="lead fst-italic mt-3">Waiting for requests...
+      </p>
+      <transition-group name="slam" tag="div">
         <div
           v-for="songRequest in $store.state.songRequests"
           :key="songRequest.id"
@@ -27,6 +29,7 @@
             </div>
           </div>
         </div>
+      </transition-group>
     </div>
     <div class="col"></div>
   </div>
@@ -73,3 +76,23 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.slam-enter-active {
+  animation: slam-in 0.5s ease-out;
+}
+
+@keyframes slam-in {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+</style>
