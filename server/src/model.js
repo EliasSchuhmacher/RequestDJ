@@ -132,6 +132,11 @@ class Model {
     this.io.emit("new", JSON.stringify(timeslot));
   }
 
+  broadcastNewSongRequest(songRequest) {
+    console.log("broadcasting new song request");
+    this.io.emit("new", JSON.stringify(songRequest));
+  }
+
   broadcastRemoveTimeslot(id) {
     this.io.emit("remove", id);
   }

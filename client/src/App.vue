@@ -62,8 +62,8 @@ export default {
     this.socket.on("update", (timeslot) =>
       commit("updateTimeslot", JSON.parse(timeslot))
     );
-    this.socket.on("new", (timeslot) =>
-      commit("newTimeslot", JSON.parse(timeslot))
+    this.socket.on("new", (songRequest) =>
+      commit("newSongRequest", JSON.parse(songRequest))
     );
     this.socket.on("remove", (id) => commit("removeTimeslot", id));
 

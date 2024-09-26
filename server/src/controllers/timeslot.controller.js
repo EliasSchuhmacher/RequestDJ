@@ -60,7 +60,8 @@ router.post("/songs", async (req, res) => {
 
   console.log(songRequest);
 
-  // Model.broadcastNewSongRequest(songRequest);
+  // TODO: Send websocket message only to correct DJ instead of broadcasting
+  Model.broadcastNewSongRequest(songRequest);
 
   // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
   res.status(200).end();

@@ -60,6 +60,13 @@ export default createStore({
       // Sort by time:
       state.timeslots.sort((a, b) => a.time.localeCompare(b.time));
     },
+    newSongRequest(state, songRequest) {
+      // TODO: Send websocket message only to correct DJ instead of broadcasting
+      console.log("New songrequest recieved from websocket")
+      if (songRequest.dj_username === state.username) {
+        state.songRequests.push(songRequest);
+      }
+    },
     removeTimeslot(state, id) {
       for (let i = 0; i < state.timeslots.length; i += 1) {
         if (state.timeslots[i].id === id) {
