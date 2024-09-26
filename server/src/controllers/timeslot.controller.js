@@ -52,13 +52,15 @@ router.post("/songs", async (req, res) => {
   }
 
   // Insert song request into database
-  db.run("INSERT INTO song_requests (DJ_name, song_title, song_artist) VALUES (?, ?, ?);", [DJ_name, song_title, song_artist]);
+  db.run("INSERT INTO SongRequests (DJ_username, song_title, song_artist) VALUES (?, ?, ?);", [DJ_name, song_title, song_artist]);
 
   // Retrieve the newly inserted song request
   const { newId } = await db.get("SELECT last_insert_rowid() AS newId;");
-  const songRequest = await db.get("SELECT * FROM song_requests WHERE id = ?;", [newId]);
+  const songRequest = await db.get("SELECT * FROM SongRequests WHERE id = ?;", [newId]);
 
-  Model.broadcastNewSongRequest(songRequest);
+  console.log(songRequest);
+
+  // Model.broadcastNewSongRequest(songRequest);
 
   // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
   res.status(200).end();
