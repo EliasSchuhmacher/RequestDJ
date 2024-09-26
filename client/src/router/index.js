@@ -5,6 +5,7 @@ import Admin from "../views/Admin.vue";
 import ShowTimeslots from "../views/ShowTimeslots.vue";
 import Booking from "../views/Booking.vue";
 import SignupForm from "../views/SignupForm.vue";
+import RequestSong from "../views/RequestSong.vue";
 
 const routes = [
   {
@@ -31,6 +32,11 @@ const routes = [
     path: "/booking",
     component: Booking,
   },
+  {
+    path: "/requestsong/:DJ_name",
+    component: RequestSong,
+    props: true,
+  }
 ];
 
 const router = createRouter({
