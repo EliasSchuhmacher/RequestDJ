@@ -75,6 +75,14 @@ export default createStore({
         }
       }
     },
+    removeSongRequest(state, id) {
+      for (let i = 0; i < state.songRequests.length; i += 1) {
+        if (state.songRequests[i].id === id) {
+          state.songRequests.splice(i, 1);
+          break;
+        }
+      }
+    },
   },
   actions: {},
   modules: {},

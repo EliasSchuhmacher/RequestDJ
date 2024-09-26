@@ -75,6 +75,28 @@ router.post("/newtime", async (req, res) => {
   res.status(200).send();
 });
 
+router.post("/removesong", async (req, res) => {
+  const { id } = req.body;
+  console.log("Remove song called for id:", id);
+
+  const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
+
+  console.log(song);
+  // Säkertställ att användaren är inloggad som den användare vars tid den försöker ta bort:
+  if (!song || song.dj_username !== req.session.user) {
+    // Försöker ta bort någon annans tid eller tid som ej finns!
+    res.status(401).send();
+    return;
+  }
+
+  // Remove the time:
+  db.run("DELETE FROM SongRequests WHERE id=?", [id]);
+
+  // Message the clients:
+  // Model.broadcastRemoveTimeslot(id);
+  res.status(200).send();
+});
+
 // FIX ME!
 router.post("/removetime", async (req, res) => {
   const { id } = req.body;
