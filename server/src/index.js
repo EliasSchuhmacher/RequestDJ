@@ -68,8 +68,12 @@ app.use("/api", auth.requireAuth(sessionStore), admin.router);
 // app.use("/api", admin.requireAuth, chat.router);
 
 // Redirect invalid requests to starting page
-app.use("*", (req, res) => {
-  res.redirect("/");
+// app.use("*", (req, res) => {
+//   res.redirect("/");
+// });
+
+app.get('*', (req, res) => {
+  res.sendFile(resolvePath('client', 'dist', 'index.html'));
 });
 
 // Initalize timeslots model
