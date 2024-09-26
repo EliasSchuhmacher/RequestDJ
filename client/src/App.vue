@@ -90,7 +90,7 @@ export default {
       })
       .then(() => {
         console.log(getters.isAuthenticated);
-        push(getters.isAuthenticated === true ? "/admin" : "/login");
+        // push(getters.isAuthenticated === true ? "/admin" : "/login");
       })
       .catch(console.error);
 

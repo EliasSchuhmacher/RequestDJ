@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { Router } from "express";
 import Model from "../model.js";
 import db from "../db.js";
@@ -37,6 +38,30 @@ router.get("/songrequests/:id", async (req, res) => {
   );
 
   res.status(200).json({ songRequests });
+});
+
+// Add a song request for a specific user:
+router.post("/songs", async (req, res) => {
+  const { DJ_name, song_title, song_artist } = req.body;
+
+  // Make sure DJ_name, song_name or artist are supplied in request
+  if (!DJ_name || (!song_title && !song_artist)) {
+    // Invalid request, send response code 400;
+    res.status(400).send();
+    return;
+  }
+
+  // Insert song request into database
+  db.run("INSERT INTO song_requests (DJ_name, song_title, song_artist) VALUES (?, ?, ?);", [DJ_name, song_title, song_artist]);
+
+  // Retrieve the newly inserted song request
+  const { newId } = await db.get("SELECT last_insert_rowid() AS newId;");
+  const songRequest = await db.get("SELECT * FROM song_requests WHERE id = ?;", [newId]);
+
+  Model.broadcastNewSongRequest(songRequest);
+
+  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
+  res.status(200).end();
 });
 
 // Booking a time:
