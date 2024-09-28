@@ -14,9 +14,11 @@
         class="lead fst-italic mt-3">Waiting for requests...</p>
       <transition-group name="slam" tag="div">
         <div
-          v-for="songRequest in sortedSongRequests"
+          v-for="songRequest in $store.state.songRequests"
           :key="songRequest.id"
-          :class="['card my-2 pt-3 shadow rounded', { shimmer: songRequest.status === 'coming_up' }]"
+          :ref="'songRequest-' + songRequest.id"
+          :class="['card my-2 pt-3 shadow rounded', 
+          { shimmer: songRequest.status === 'coming_up', loading: songRequest.status === 'playing'  }]"
         >
           <div class="px-3 d-flex justify-content-between align-items-center">
             <div v-if="songRequest.song_title" >
@@ -35,7 +37,7 @@
             <button
               type="button"
               class="btn btn-light flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-              @click="updateStatus(songRequest.id, 'coming_up')"
+              @click="setComingUp(songRequest.id)"
             >
               <i class="fas mt-1 fa-hourglass-start"></i>
               <span class="px-0 small mt-auto">Coming up</span>
@@ -43,9 +45,9 @@
             <button
               type="button"
               class="btn btn-light flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-              @click="submitRemove(songRequest.id)"
+              @click="setPlaying(songRequest.id)"
             >
-              <i class="fas mt-1 fa-play"></i>
+            <i :class="songRequest.status === 'playing' ? 'fas mt-1 fa-check' : 'fas mt-1 fa-play'"></i>
               <span class="px-0 small mt-auto">Playing</span>
             </button>
             <button
@@ -74,6 +76,7 @@ export default {
   }),
   computed: {
     sortedSongRequests() {
+      // No longer used
       return this.$store.state.songRequests.slice().sort((a, b) => {
         if (a.status === 'coming_up' && b.status !== 'coming_up') {
           return -1;
@@ -90,8 +93,9 @@ export default {
     const res = await fetch(`/api/songs/${this.$store.state.username}`);
     const { songRequests } = await res.json();
 
-    // Update the store with the fetched timeslots
+    // Update the store with the fetched songRequests
     commit("setSongRequests", songRequests);
+    commit("sortSongRequests");
   },
   methods: {
     redirect(name) {
@@ -125,6 +129,17 @@ export default {
         songRequest.status = status;
       }
     },
+    setPlaying(id) {
+      this.updateStatus(id, 'playing');
+
+      // Wait 1.5 seconds before removing the song request
+      const timeDelay = 2400; // Needs to be slighlty shorter than animation duration?
+      setTimeout(() => this.submitRemove(id), timeDelay);
+    },
+    setComingUp(id) {
+      this.updateStatus(id, 'coming_up');
+      this.$store.commit("moveSongRequestToTop", id);
+    },
   },
 };
 </script>
@@ -138,6 +153,11 @@ export default {
   background: linear-gradient(to right, #f6f7f8 8%, #eaeaea 18%, #f6f7f8 33%);
   background-size: 1000px 100%;
 }
+.loading {
+  animation: loading 2.5s forwards;
+  background: linear-gradient(to right, #eaeaea 50%, #f6f7f8 50%);
+  background-size: 200% 100%;
+}
 
 @keyframes shimmer {
   0% {
@@ -145,6 +165,14 @@ export default {
   }
   100% {
     background-position: 1000px 0;
+  }
+}
+@keyframes loading {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
   }
 }
 @keyframes slam-in {

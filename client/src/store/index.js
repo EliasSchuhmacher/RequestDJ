@@ -83,6 +83,26 @@ export default createStore({
         }
       }
     },
+    sortSongRequests(state) {
+      state.songRequests.slice().sort((a, b) => {
+        if (a.status === 'coming_up' && b.status !== 'coming_up') {
+          return -1;
+        }
+        if (a.status !== 'coming_up' && b.status === 'coming_up') {
+          return 1;
+        }
+        return 0;
+      });
+    },
+    moveSongRequestToTop(state, id) {
+      for (let i = 0; i < state.songRequests.length; i += 1) {
+        if (state.songRequests[i].id === id) {
+          const songRequest = state.songRequests.splice(i, 1)[0];
+          state.songRequests.unshift(songRequest);
+          break;
+        }
+      }
+    }
   },
   actions: {},
   modules: {},
