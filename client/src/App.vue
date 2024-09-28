@@ -141,13 +141,15 @@ export default {
         alert("I App.vue, ändra variabeln 'localip' till din lokala IP-adress för att detta ska fungera (temporär lösning)");
         return;
       }
-      const data = encodeURIComponent(`http://${localip}:8989/requestsong/${this.$store.state.username}`);      // const size = 300;
+      const data = encodeURIComponent(`http://${localip}:8989/requestsong/${this.$store.state.username}`);  
+      const size = 300;
+      const windowSize = 320;
       // const config = encodeURIComponent(JSON.stringify({}));
       // const file = "png";
       // const download = false;
 
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`;
-      window.open(qrCodeUrl, "_blank");
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${data}`;
+      window.open(qrCodeUrl, "_blank", `width=${windowSize},height=${windowSize}`);
     },
     longPoll() {
       const { commit } = this.$store;
