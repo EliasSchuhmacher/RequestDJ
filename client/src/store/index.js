@@ -7,6 +7,7 @@ export default createStore({
     timeslots: [],
     songRequests: [],
     selectedBookingTimeslot: "",
+    //spotifyAccessToken: null,
   },
   getters: {
     isAuthenticated(state) {
@@ -15,6 +16,9 @@ export default createStore({
     getUsername(state) {
       return state.username;
     },
+/*     getToken(state) {
+      return state.spotifyAccessToken;
+    },   */  
     getAssistantTimeslots(state) {
       return state.timeslots.filter((e) => e.assistantName === state.username);
     },
@@ -39,6 +43,9 @@ export default createStore({
     setSelectedBookingTimeslot(state, timeslot) {
       state.selectedBookingTimeslot = timeslot;
     },
+/*     setSpotifyAccessToken(state, token) {
+      state.spotifyAccessToken = token;
+    }, */
     bookSelectedTime(state, name) {
       this.selectedBookingTimeslot.bookedBy = name;
     },

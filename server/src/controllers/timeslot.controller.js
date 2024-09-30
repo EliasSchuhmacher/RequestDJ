@@ -15,6 +15,34 @@ const router = Router();
  * etc.
  */
 
+const getSpotifyAccessToken = async () => {
+  const clientId = //sätt in värden
+  const clientSecret = //sätt in värden
+  
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    
+    const data = await response.json();
+    console.log('Spotify Access Token obtained successfully.', data);
+    // Update token and expiry time
+    //tokenExpiresAt = Date.now() + response.data.expires_in * 1000; // Set expiration time (in milliseconds)
+    return data.access_token;
+  } catch (error) {
+    console.error('Failed to get Spotify Access Token:', error);
+    throw new Error('Unable to fetch Spotify Access Token');
+  }
+};
+
 const validateBookersName = (name) => {
   if (/[0-9]/.test(name) || name.length < 3) {
     return false;
@@ -38,6 +66,20 @@ router.get("/songs/:username", async (req, res) => {
   );
 
   res.status(200).json({ songRequests });
+});
+
+router.get("/spotify/token", async (req, res) => {
+  //console.log("we are in the spotify/token function")
+  try {
+    // Fetch a new token
+    const spotifyAccessToken = await getSpotifyAccessToken();
+    //console.log(spotifyAccessToken)
+    //console.log("hej")
+    // Return the token to the client
+    res.status(200).json({ accessToken: spotifyAccessToken });
+  } catch (error) {
+    res.status(500).send('Spotify Access Token is not available.');
+  }
 });
 
 // Add a song request for a specific user:
