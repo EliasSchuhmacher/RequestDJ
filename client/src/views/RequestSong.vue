@@ -195,7 +195,7 @@ export default {
       console.log(this.token)
 
       // Send the booking to server via AJAX-post request
-      /* fetch(`/api/songs`, {
+      fetch(`/api/songs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,7 +209,7 @@ export default {
           this.requestSent = true;
           this.song_title = "";
           this.song_artist = "";
-        }); */
+        });
     },
     reset() {
       this.requestSent = false;

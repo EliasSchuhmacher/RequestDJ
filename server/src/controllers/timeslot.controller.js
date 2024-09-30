@@ -16,8 +16,8 @@ const router = Router();
  */
 
 const getSpotifyAccessToken = async () => {
-  const clientId = //sätt in värden
-  const clientSecret = //sätt in värden
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
