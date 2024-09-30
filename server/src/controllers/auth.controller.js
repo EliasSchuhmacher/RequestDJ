@@ -24,7 +24,7 @@ const router = Router();
 const requireAuth = (sessionStore) => (req, res, next) => {
   // Try using sessionStore.get instead, (Problem with req.session on parallel requests...):
   sessionStore.get(req.sessionID, (err, session) => {
-    if (session.authenticated && session.authenticated === true) {
+    if (session && session.authenticated === true) {
       // User is authenticated! Go ahead!
       next();
     } else {
