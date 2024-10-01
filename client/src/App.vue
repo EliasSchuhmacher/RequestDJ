@@ -65,6 +65,15 @@ export default {
     this.socket.on("new", (songRequest) =>
       commit("newSongRequest", JSON.parse(songRequest))
     );
+    this.socket.on("played", () =>
+      commit("setSongRequestResponse", "played")
+    );
+    this.socket.on("coming_up", () =>
+      commit("setSongRequestResponse", "coming_up")
+    );
+    this.socket.on("rejected", () =>
+      commit("setSongRequestResponse", "rejected")
+    );
 
     // Check if cookie is logged in already or not
     console.log("mounted... now fetching if logged in or not");
@@ -176,5 +185,6 @@ body {
     rgb(242 112 156),
     rgb(255 148 114)
   );
+
 }
 </style>

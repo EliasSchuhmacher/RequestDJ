@@ -7,6 +7,7 @@ export default createStore({
     timeslots: [],
     songRequests: [],
     selectedBookingTimeslot: "",
+    songRequestResponse: "",
     //spotifyAccessToken: null,
   },
   getters: {
@@ -42,6 +43,10 @@ export default createStore({
     },
     setSelectedBookingTimeslot(state, timeslot) {
       state.selectedBookingTimeslot = timeslot;
+    },
+    setSongRequestResponse(state, response) {
+      state.songRequestResponse = response;
+      console.log("SongRequestResponse: ", response);
     },
 /*     setSpotifyAccessToken(state, token) {
       state.spotifyAccessToken = token;

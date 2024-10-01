@@ -37,7 +37,7 @@
             <button
               type="button"
               class="btn btn-light flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-              @click="setComingUp(songRequest.id)"
+              @click="submitComingUp(songRequest.id)"
             >
               <i class="fas mt-1 fa-hourglass-start"></i>
               <span class="px-0 small mt-auto">Coming up</span>
@@ -73,6 +73,7 @@ export default {
   components: {},
   data: () => ({
     newtime: "10:00",
+    // TODO: save id of last song request
   }),
   computed: {
     sortedSongRequests() {
@@ -132,13 +133,30 @@ export default {
     setPlaying(id) {
       this.updateStatus(id, 'playing');
 
+      // TODO add ability to cancel the playing status
       // Wait 1.5 seconds before removing the song request
       const timeDelay = 2400; // Needs to be slighlty shorter than animation duration?
-      setTimeout(() => this.submitRemove(id), timeDelay);
+      setTimeout(() => this.submitPlaying(id), timeDelay);
     },
-    setComingUp(id) {
+    submitComingUp(id) {
       this.updateStatus(id, 'coming_up');
       this.$store.commit("moveSongRequestToTop", id);
+
+      fetch("/api/comingup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      }).catch(console.error);
+    },
+    submitPlaying(id) {
+      // Remove the song request from the store
+      this.$store.commit("removeSongRequest", id);
+
+      fetch("/api/playsong", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      }).catch(console.error);
     },
   },
 };

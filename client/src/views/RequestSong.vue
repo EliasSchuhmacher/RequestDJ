@@ -33,9 +33,6 @@
               </li>
             </ul>
           </div>
-
-
-
           <div v-if="errorMessage" class="alert alert-danger">
             {{ errorMessage }}
           </div>
@@ -50,6 +47,18 @@
           <p class="h4 py-5 text-center">
             <i class="fas fa-check"></i>
             Your request has been sent.
+          </p>
+          <p v-if="$store.state.songRequestResponse === 'played'" class="text-center text-lead">
+            Horay! Your song has been played!
+          </p>
+          <p v-else-if="$store.state.songRequestResponse === 'coming_up'" class="text-center text-lead">
+            Request Accepted! Your song will be played soon!
+          </p>
+          <p v-else-if="$store.state.songRequestResponse === 'rejected'" class="text-center text-lead">
+            Sorry, your song request was rejected. Feel free to request another song.
+          </p>
+          <p v-else class="text-center text-lead">
+            Awaiting DJ response...
           </p>
           <button type="button" class="btn btn-primary w-100" @click="reset()">
             Request Another Song
@@ -99,7 +108,7 @@ export default {
   async mounted() {
     try {
       this.token = await this.fetchSpotifytoken(); // Use await to get the resolved token
-      //console.log("Fetched token on mount:", this.token); // Log the token
+      // console.log("Fetched token on mount:", this.token); // Log the token
     } catch (error) {
       console.error("Error fetching token on mount:", error);
     }
@@ -114,7 +123,7 @@ export default {
       }
     },
   
-  //we only want to send spotify request after 300 ms after typing  
+  // we only want to send spotify request after 300 ms after typing  
   debounce(func, delay) {
       let timeout;
       return function(...args) {
@@ -124,7 +133,7 @@ export default {
       };
     },
 
-    //if they choose one of the suggestions submit
+    // if they choose one of the suggestions submit
     selectSuggestion(suggestion) {
       // Set the input value to the selected suggestion
       this.song_title = suggestion;
@@ -132,12 +141,12 @@ export default {
       this.suggestions = [];
     },
 
-    //get the spotify token that is needed for api calls from backend
+    // get the spotify token that is needed for api calls from backend
     async fetchSpotifytoken() {
       return await fetch(`/api/spotify/token`)
         .then(response => response.json())
         .then(data => {
-          //console.log(data.accessToken); // Do something with the token
+          // onsole.log(data.accessToken); // Do something with the token
           return data.accessToken
         })
         .catch(error => {
@@ -198,6 +207,7 @@ export default {
       fetch(`/api/songs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+         credentials: "include", // Include credentials such as cookies
         body: JSON.stringify({
           song_title: this.song_title,
           song_artist: this.song_artist,
@@ -207,12 +217,15 @@ export default {
         .catch(console.error)
         .then(() => {
           this.requestSent = true;
-          this.song_title = "";
-          this.song_artist = "";
         });
     },
     reset() {
       this.requestSent = false;
+      this.song_title = "";
+      this.song_artist = "";
+      this.errorMessage = "";
+      this.suggestions = [];
+      this.$store.commit("setSongRequestResponse", "");
     },
   },
 };

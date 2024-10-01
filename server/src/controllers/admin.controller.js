@@ -2,6 +2,7 @@ import { Router } from "express";
 import Model from "../model.js";
 import Timeslot from "../models/timeslot.model.js";
 import db from "../db.js";
+import sessionStore from '../sessionStore.js'; // Import the session store
 
 const router = Router();
 
@@ -15,25 +16,6 @@ const router = Router();
  * POST    /removetime                   =>  Try to login with details supplied in request body
  * etc.
  */
-
-const validateTime = (time) => {
-  if (time.length !== 5) {
-    // Invalid length of time string
-    return false;
-  }
-  if (time[2] !== ":") {
-    // Middle character needs to be " : "
-    return false;
-  }
-  const hour = parseInt(time.slice(0, 2), 10); // Bas 10 (Decimal)
-  const minute = parseInt(time.slice(3, 5), 10);
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-    // Invalid hour and minute number, needs to be in range 0-24:0-60
-    return false;
-  }
-  // Passed all tests:
-  return true;
-};
 
 router.post("/logout", async (req, res) => {
   console.log("Logout called on serverside");
@@ -67,37 +49,100 @@ router.get("/songs/:username", async (req, res) => {
   res.status(200).json({ songRequests });
 });
 
-router.post("/newtime", async (req, res) => {
-  const { time } = req.body;
-  const username = req.session.user;
+// Mark a song request as played:
+router.post("/playsong", async (req, res) => {
+  const { id } = req.body;
+  console.log("Play song called for id:", id);
 
-  if (!time) {
-    // Request missing properties, don't let it crash the server
-    res.send(400).send();
+  const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
+
+  // Check that song exists
+  if (!song) {
+    // Ogiltigt id, skicka 404
+    res.status(404).send();
     return;
   }
 
-  // Validate the time sent in request (Server side validation)
-  if (validateTime(time) === false) {
-    // Invalid time format, send response code 400.
-    res.status(400).send();
+  // console.log(song);
+  // Säkertställ att användaren är inloggad som den användare vars song den försöker playa:
+  if (song.dj_username !== req.session.user) {
+    // Försöker playa någon annans song!
+    res.status(401).send();
     return;
   }
 
-  await db.run(
-    "INSERT INTO timeslots(time, assistantName, status, bookedBy) VALUES(?, ?, 'Available', '');",
-    [time, username]
-  );
-  // Sqlite automatically asigns id to new insert, retrieve this:
-  const { newId } = await db.get("SELECT last_insert_rowid() AS newId;");
-  console.log(newId);
+  // Remove the song request:
+  db.run("DELETE FROM SongRequests WHERE id=?", [id]);
 
-  const timeslot = new Timeslot(newId, time, username);
+  // Retrieve websocket id of requester
+  sessionStore.get(song.requester_session_id, (err, session) => {
+    if (err) {
+      console.log("Error retrieving requester session from sessionStore");
+      console.error(err);
+      res.status(200).send();
+      return;
+    }
 
-  // Message the clients:
-  Model.broadcastNewTimeslot(timeslot);
+    if (session && session.socketID) {
+      const requesterWebsocketId = session.socketID;
+      // Alert the requester of the song that it has been played:
+      Model.alertSongRequestPlayed(requesterWebsocketId);
+    } else {
+      // Requester session not found
+      console.log("Requester session not found, requester not alerted");
+    }
+    
+    res.status(200).send();
 
-  res.status(200).send();
+  });
+});
+
+// Mark a song as "coming up":
+router.post("/comingup", async (req, res) => {
+  const { id } = req.body;
+  console.log("Coming up called for id:", id);
+
+  const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
+
+  // Check that song exists
+  if (!song) {
+    // Ogiltigt id, skicka 404
+    res.status(404).send();
+    return;
+  }
+
+  // console.log(song);
+  // Säkertställ att användaren är inloggad som den användare vars song den försöker markera:
+  if (song.dj_username !== req.session.user) {
+    // Försöker markera någon annans song!
+    res.status(401).send();
+    return;
+  }
+
+  // Update the song request status to "coming_up":
+  db.run("UPDATE SongRequests SET status='coming_up' WHERE id=?", [id]);
+
+  // Retrieve websocket id of requestert in order to alert them
+  sessionStore.get(song.requester_session_id, (err, session) => {
+    if (err) {
+      console.log("Error retrieving requester session from sessionStore");
+      console.error(err);
+      res.status(200).send();
+      return;
+    }
+
+    if (session && session.socketID) {
+      const requesterWebsocketId = session.socketID;
+      // Alert the requester of the song that it is coming up:
+      Model.alertSongRequestComingUp(requesterWebsocketId);
+    } else {
+      // Requester session not found
+      console.log("Requester session not found, requester not alerted");
+    }
+
+    res.status(200).send();
+  });
+
 });
 
 // Remove/Reject a song request:
@@ -114,7 +159,7 @@ router.post("/removesong", async (req, res) => {
     return;
   }
 
-  console.log(song);
+  // console.log(song);
   // Säkertställ att användaren är inloggad som den användare vars tid den försöker ta bort:
   if (song.dj_username !== req.session.user) {
     // Försöker ta bort någon annans tid eller tid som ej finns!
@@ -122,35 +167,30 @@ router.post("/removesong", async (req, res) => {
     return;
   }
 
-  // Remove the time:
+  // Remove the song request:
   db.run("DELETE FROM SongRequests WHERE id=?", [id]);
 
-  // Message the clients:
-  // Model.broadcastRemoveTimeslot(id);
-  res.status(200).send();
-});
+  // Retrieve websocket id of requester in order to alert them
+  sessionStore.get(song.requester_session_id, (err, session) => {
+    if (err) {
+      console.log("Error retrieving requester session from sessionStore");
+      console.error(err);
+      res.status(200).send();
+      return;
+    }
 
-// FIX ME!
-router.post("/removetime", async (req, res) => {
-  const { id } = req.body;
-  console.log("Remove time called for id:", id);
+    if (session && session.socketID) {
+      const requesterWebsocketId = session.socketID;
+      // Alert the requester of the song that it has been rejected:
+      Model.alertSongRequestRejected(requesterWebsocketId);
+    } else {
+      // Requester session not found
+      console.log("Requester session not found, requester not alerted");
+    }
 
-  const timeslot = await db.get("SELECT * FROM timeslots WHERE id=?", [id]);
+    res.status(200).send();
+  });
 
-  console.log(timeslot);
-  // Säkertställ att användaren är inloggad som den användare vars tid den försöker ta bort:
-  if (!timeslot || timeslot.assistantName !== req.session.user) {
-    // Försöker ta bort någon annans tid eller tid som ej finns!
-    res.status(401).send();
-    return;
-  }
-
-  // Remove the time:
-  db.run("DELETE FROM timeslots WHERE id=?", [id]);
-
-  // Message the clients:
-  Model.broadcastRemoveTimeslot(id);
-  res.status(200).send();
 });
 
 export default { router };

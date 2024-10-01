@@ -2,6 +2,7 @@
 import { Router } from "express";
 import Model from "../model.js";
 import db from "../db.js";
+import sessionStore from "../sessionStore.js";
 
 const router = Router();
 
@@ -33,7 +34,7 @@ const getSpotifyAccessToken = async () => {
 
     
     const data = await response.json();
-    console.log('Spotify Access Token obtained successfully.', data);
+    // console.log('Spotify Access Token obtained successfully.', data);
     // Update token and expiry time
     //tokenExpiresAt = Date.now() + response.data.expires_in * 1000; // Set expiration time (in milliseconds)
     return data.access_token;
@@ -82,14 +83,19 @@ router.post("/songs", async (req, res) => {
     return;
   }
 
+  // Get the session id of the requester, and store it with the song request
+  const requester_session_id = req.sessionID;
+
   // Insert song request into database
-  db.run("INSERT INTO SongRequests (DJ_username, song_title, song_artist) VALUES (?, ?, ?);", [DJ_name, song_title, song_artist]);
+  db.run("INSERT INTO SongRequests (DJ_username, song_title, song_artist, requester_session_id) VALUES (?, ?, ?, ?);",
+    [DJ_name, song_title, song_artist, requester_session_id]);
 
   // Retrieve the newly inserted song request
   const { newId } = await db.get("SELECT last_insert_rowid() AS newId;");
-  const songRequest = await db.get("SELECT * FROM SongRequests WHERE id = ?;", [newId]);
+  // Do not send requester_session_id to client! (Do not use Select * FROM...)
+  const songRequest = await db.get("SELECT id, song_title, song_artist, request_date, status, dj_username FROM SongRequests WHERE id = ?;", [newId]);
 
-  console.log(songRequest);
+  console.log("Song Title: ", songRequest.song_title);
 
   // TODO: Send websocket message only to correct DJ instead of broadcasting
   Model.broadcastNewSongRequest(songRequest);
@@ -98,124 +104,6 @@ router.post("/songs", async (req, res) => {
   res.status(200).end();
 });
 
-// Booking a time:
-router.post("/timeslots", async (req, res) => {
-  const { name, timeslotId } = req.body;
-  console.log(timeslotId);
 
-  // Make sure name and timeslotId are supplied in request
-  if (!name || !timeslotId) {
-    // Invalid request, send response code 400;
-    res.status(400).send();
-    return;
-  }
-
-  // Validate bookers name (Server side validation)
-  if (validateBookersName(name) === false) {
-    // Booking name doesn't meet critera, send response code 400.
-    res.status(400).send();
-    return;
-  }
-
-  // Validate that the user has previously reserved this timeslot:
-  if (
-    !(
-      req.session.reservedTimeslotId &&
-      req.session.reservedTimeslotId === timeslotId
-    )
-  ) {
-    console.log("Stealing of another users reserved time was attempted");
-    // Unauthorized to book timeslots that haven't been reserved by you
-    res.status(401).send();
-    return;
-  }
-
-  // Make sure that the timeslot is available and can be booked (Serverside check):
-  const timeslot = await db.get(
-    "SELECT * from timeslots WHERE id=?",
-    timeslotId
-  );
-
-  if (timeslot && timeslot.status === "Reserved") {
-    // Insert bookers name into timeslot and switch status to booked.
-    db.run("UPDATE timeslots SET status='Booked', bookedBy=? WHERE id=?", [
-      name,
-      timeslotId,
-    ]);
-
-    // Broadcast the new updated timeslot object to all clients.
-    timeslot.status = "Booked";
-    timeslot.bookedBy = name;
-    Model.broadcastUpdateTimeslot(timeslot);
-
-    res.status(200).end();
-  } else {
-    // Forbidden request! Cannot book already booked/reserved timeslots.
-    res.status(403).end();
-  }
-});
-
-router.post("/reserve", async (req, res) => {
-  const { timeslotId } = req.body;
-  console.log(timeslotId);
-
-  // Make sure that the timeslot is available and can be reserved (Serverside check):
-  const timeslot = await db.get(
-    "SELECT * from timeslots WHERE id=?",
-    timeslotId
-  );
-
-  if (timeslot && timeslot.status === "Available") {
-    // Change timeslot status to Reserved
-    db.run("UPDATE timeslots SET status='Reserved' WHERE id=?", [timeslotId]);
-
-    // Which timeslot the user has reserved should be saved in the users session data
-    req.session.reservedTimeslotId = timeslotId;
-
-    // Set timeout for server side reservation removal
-    // Keep a reference to timeout function in session data, this allows us to cancel the timeout
-    Model.createReservationTimeout(timeslotId, req.sessionID);
-
-    // Broadcast the new updated timeslot object to all clients.
-    timeslot.status = "Reserved";
-    Model.broadcastUpdateTimeslot(timeslot);
-
-    res.status(200).end();
-  } else {
-    // Forbidden request bitch! Cannot reserve already booked/reserved timeslots.
-    res.status(403).end();
-  }
-});
-
-router.post("/unreserve", async (req, res) => {
-  const { timeslotId } = req.body;
-  console.log(timeslotId);
-
-  // Make sure that the timeslot is available and can be booked (Serverside check):
-  const timeslot = await db.get(
-    "SELECT * from timeslots WHERE id=?",
-    timeslotId
-  );
-
-  if (timeslot && timeslot.status === "Reserved") {
-    // Change timeslot status to Reserved
-    db.run("UPDATE timeslots SET status='Available' WHERE id=?", [timeslotId]);
-
-    // Reset session data about which timeslot the user has reserved.
-    req.session.reservedTimeslotId = undefined;
-
-    // Cancel the serverside reservation timeout for this timeslot
-    Model.cancelReservationTimeout(req.sessionID);
-
-    // Broadcast the new updated timeslot object to all clients.
-    timeslot.status = "Available";
-    Model.broadcastUpdateTimeslot(timeslot);
-
-    res.status(200).end();
-  } else {
-    // Forbidden request! Cannot unreserve.
-    res.status(403).end();
-  }
-});
 
 export default { router };

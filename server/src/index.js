@@ -10,6 +10,7 @@ import Model from "./model.js";
 import admin from "./controllers/admin.controller.js";
 import auth from "./controllers/auth.controller.js";
 import timeslot from "./controllers/timeslot.controller.js";
+import sessionStore from './sessionStore.js'; // Import the session store
 
 // Load environment variables from .env file
 dotenv.config();
@@ -19,7 +20,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server);
 
-const sessionStore = new expressSession.MemoryStore();
+// const sessionStore = new expressSession.MemoryStore();
 
 const { Theme } = betterLogging;
 betterLogging(console, {
@@ -43,7 +44,7 @@ app.use(
 // Configure session management
 const sessionConf = expressSession({
   secret: "Super secret! Shh! Do not tell anyone...",
-  resave: true,
+  resave: false,
   saveUninitialized: true,
   store: sessionStore,
   cookie: { maxAge: 86400000 },
@@ -91,18 +92,20 @@ io.on("connection", (socket) => {
   // This part needs to be last?:
   session.save((err) => {
     if (err) console.error(err);
-    else console.debug(`Saved socketID: ${session.socketID}`);
+    else {
+      console.log("sessionID: ", sessionID);
+      console.debug(`Saved socketID: ${session.socketID}`)};
   });
 
   // BONUS 4X (Inactivity handling using socket.io):
   // Cancel server session timeout on every "activity" message from client:
-  socket.on("message", (data) => {
-    console.log("data in websocket message: ", data);
-    if (data === "activity") {
-      console.log("activity notification recieved from client");
-      Model.resetSessionTimeout(sessionID, session);
-    }
-  });
+  // socket.on("message", (data) => {
+  //   console.log("data in websocket message: ", data);
+  //   if (data === "activity") {
+  //     console.log("activity notification recieved from client");
+  //     Model.resetSessionTimeout(sessionID, session);
+  //   }
+  // });
 });
 
 server.listen(port, () => {

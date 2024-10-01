@@ -141,6 +141,21 @@ class Model {
     this.io.emit("remove", id);
   }
 
+  alertSongRequestPlayed(id) {
+    // Alert the socket with the id that the song has been played
+    this.io.to(id).emit("played");
+  }
+
+  alertSongRequestComingUp(id) {
+    // Alert the socket with the id that the song is coming up
+    this.io.to(id).emit("coming_up");
+  }
+
+  alertSongRequestRejected(id) {
+    // Alert the socket with the id that the song request was rejected
+    this.io.to(id).emit("rejected");
+  }
+
   /**
    * Join a specified room.
    * @param {String} socketID - An unique identifier for the user socket.io session.

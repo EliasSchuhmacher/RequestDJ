@@ -35,7 +35,7 @@ const requireAuth = (sessionStore) => (req, res, next) => {
 };
 
 router.get("/users/me", (req, res) => {
-  console.log(req.session);
+  // console.log(req.session);
   res.status(200).json({
     authenticated: req.session.authenticated,
     username: req.session.user,
@@ -51,7 +51,7 @@ router.post("/login", async (req, res) => {
     username
   );
 
-  console.log(dbPassword);
+  // console.log(dbPassword);
 
   if (!dbPassword) {
     // User does not exist in the database bitch
