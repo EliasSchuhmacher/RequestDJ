@@ -62,20 +62,9 @@ export default {
     const { push } = this.$router;
 
     // Configure socket responses
-    this.socket.on("update", (timeslot) =>
-      commit("updateTimeslot", JSON.parse(timeslot))
-    );
     this.socket.on("new", (songRequest) =>
       commit("newSongRequest", JSON.parse(songRequest))
     );
-    this.socket.on("remove", (id) => commit("removeTimeslot", id));
-
-    // Make first long poll request:
-    // this.longPoll();
-    /* this.socket.on("inactivityLogout", () => {
-      commit("setAuthenticated", false);
-      push("/login");
-    }) */
 
     // Check if cookie is logged in already or not
     console.log("mounted... now fetching if logged in or not");
@@ -93,13 +82,13 @@ export default {
       })
       .then(() => {
         console.log(getters.isAuthenticated);
+        if (getters.isAuthenticated === true) {
+          push("/admin");
+        }
         // push(getters.isAuthenticated === true ? "/admin" : "/login");
       })
       .catch(console.error);
 
-    // BONUS 4X send "activity" message every time the user clicks or presses a button.
-    // window.addEventListener("mousedown", this.notifyActivity);
-    // window.addEventListener("keydown", this.notifyActivity);
   },
   methods: {
     redirect(target) {
