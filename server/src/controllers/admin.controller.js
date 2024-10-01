@@ -42,6 +42,31 @@ router.post("/logout", async (req, res) => {
   res.status(200).send();
 });
 
+// Create an endpoint for retrieving song requests for a specific user
+router.get("/songs/:username", async (req, res) => {
+  const { username } = req.params;
+
+  if (!username) {
+    // Request missing properties, don't let it crash the server
+    res.send(400).send();
+    return;
+  }
+
+  if (username !== req.session.user) {
+    // Trying to access another users song requests
+    res.status(401).send();
+    return;
+  }
+
+  // Do not send requester_session_id to client! (Do not use Select * FROM...)
+  const songRequests = await db.all(
+    'SELECT id, song_title, song_artist, request_date, status, dj_username FROM SongRequests WHERE dj_username = ?;',
+    username
+  );
+
+  res.status(200).json({ songRequests });
+});
+
 router.post("/newtime", async (req, res) => {
   const { time } = req.body;
   const username = req.session.user;
@@ -75,15 +100,23 @@ router.post("/newtime", async (req, res) => {
   res.status(200).send();
 });
 
+// Remove/Reject a song request:
 router.post("/removesong", async (req, res) => {
   const { id } = req.body;
   console.log("Remove song called for id:", id);
 
   const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
 
+  // Check that song exists
+  if (!song) {
+    // Ogiltigt id, skicka 404
+    res.status(404).send();
+    return;
+  }
+
   console.log(song);
   // Säkertställ att användaren är inloggad som den användare vars tid den försöker ta bort:
-  if (!song || song.dj_username !== req.session.user) {
+  if (song.dj_username !== req.session.user) {
     // Försöker ta bort någon annans tid eller tid som ej finns!
     res.status(401).send();
     return;

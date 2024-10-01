@@ -57,17 +57,6 @@ router.get("/timeslots", async (req, res) => {
   res.status(200).json({ timeslots });
 });
 
-// Create an endpoint for retrieving song requests for a specific user
-router.get("/songs/:username", async (req, res) => {
-  const { username } = req.params;
-  const songRequests = await db.all(
-    "SELECT * FROM SongRequests WHERE dj_username=?",
-    username
-  );
-
-  res.status(200).json({ songRequests });
-});
-
 router.get("/spotify/token", async (req, res) => {
   //console.log("we are in the spotify/token function")
   try {

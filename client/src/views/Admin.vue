@@ -28,7 +28,7 @@
             <div v-else>
               <i class="fas fa-user me-3"></i><strong>{{ songRequest.song_artist }}</strong>
             </div>
-            <div class="text-muted small mb-auto">
+            <div class="text-muted ms-2 small mb-auto">
               <span v-if="songRequest.status === 'coming_up'">Coming up...</span>
               <span v-else-if="songRequest.status === 'playing'">Playing</span>
             </div>
