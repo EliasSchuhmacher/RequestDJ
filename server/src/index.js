@@ -15,7 +15,7 @@ import sessionStore from './sessionStore.js'; // Import the session store
 // Load environment variables from .env file
 dotenv.config();
 
-const port = 8989;
+const port = process.env.PORT || 8989;
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
