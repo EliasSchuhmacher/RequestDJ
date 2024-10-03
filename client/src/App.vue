@@ -131,15 +131,16 @@ export default {
     },
     generateQRCode() {
       // ENTER YOUR WIFI LOCAL IP HERE (temporary solution):
-      const localip = "";
+      // const localip = "";
       // const localip = "192.168.1.121";
+      const qrcodeURL = "https://requestdj.onrender.com/requestsong/";
 
-      if (!localip) {
-        // eslint-disable-next-line no-alert
-        alert("I App.vue, ändra variabeln 'localip' till din lokala IP-adress för att detta ska fungera (temporär lösning)");
-        return;
-      }
-      const data = encodeURIComponent(`http://${localip}:8989/requestsong/${this.$store.state.username}`);  
+      // if (!localip) {
+      //   // eslint-disable-next-line no-alert
+      //   alert("I App.vue, ändra variabeln 'localip' till din lokala IP-adress för att detta ska fungera (temporär lösning)");
+      //   return;
+      // }
+      const data = encodeURIComponent(`${qrcodeURL}${this.$store.state.username}`);  
       const size = 300;
       const windowSize = 320;
       // const config = encodeURIComponent(JSON.stringify({}));
