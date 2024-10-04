@@ -1,76 +1,48 @@
 <template>
   <div class="row">
-    <div class="col"></div>
-    <div class="col-sm-6">
-      <h2>Signed in as {{ $store.state.username }}</h2>
-    </div>
-    <div class="col"></div>
+  <div class="col-sm-6 px-5">
+    <h3> Incoming Requests </h3>
+    <p 
+      v-if="incomingSongRequests.length === 0"
+      class="lead fst-italic mt-3"
+    >
+      Waiting for requests, scan the QR code to send a song request...
+    </p>
+    <transition-group name="slam" tag="div">
+      <SongRequestCard
+        v-for="songRequest in incomingSongRequests"
+        :key="songRequest.id"
+        :song-request="songRequest"
+        @set-playing="setPlaying"
+        @submit-remove="submitRemove"
+        @submit-comingup="submitComingUp"
+      />
+    </transition-group>
   </div>
-  <div class="row">
-    <div class="col"></div>
-    <div class="col-sm-6">
-      <p 
-        v-if="$store.state.songRequests.length === 0"
-        class="lead fst-italic mt-3">Waiting for requests...</p>
-      <transition-group name="slam" tag="div">
-        <div
-          v-for="songRequest in $store.state.songRequests"
-          :key="songRequest.id"
-          :ref="'songRequest-' + songRequest.id"
-          :class="['card my-2 pt-3 shadow rounded', 
-          { shimmer: songRequest.status === 'coming_up', loading: songRequest.status === 'playing'  }]"
-        >
-          <div class="px-3 d-flex justify-content-between align-items-center">
-            <div v-if="songRequest.song_title" >
-              <i class="fas fa-music me-3"></i><strong>{{ songRequest.song_title }}</strong>
-              <span v-if="songRequest.song_artist"> by {{ songRequest.song_artist }} </span>
-            </div>
-            <div v-else>
-              <i class="fas fa-user me-3"></i><strong>{{ songRequest.song_artist }}</strong>
-            </div>
-            <div class="text-muted ms-2 small mb-auto">
-              <span v-if="songRequest.status === 'coming_up'">Coming up...</span>
-              <span v-else-if="songRequest.status === 'playing'">Playing</span>
-            </div>
-          </div>
-          <div class="btn-group d-flex w-100 mt-3" role="group">
-            <button
-              type="button"
-              class="btn btn-light flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-              @click="submitComingUp(songRequest.id)"
-            >
-              <i class="fas mt-1 fa-hourglass-start"></i>
-              <span class="px-0 small mt-auto">Coming up</span>
-            </button>
-            <button
-              type="button"
-              class="btn btn-light flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-              @click="setPlaying(songRequest.id)"
-            >
-            <i :class="songRequest.status === 'playing' ? 'fas mt-1 fa-check' : 'fas mt-1 fa-play'"></i>
-              <span class="px-0 small mt-auto">Playing</span>
-            </button>
-            <button
-              type="button"
-              class="btn btn-light flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-              @click="submitRemove(songRequest.id)"
-            >
-              <i class="fas mt-1 fa-times"></i>
-              <span class="px-0 small mt-auto">Reject</span>
-            </button>
-          </div>
-        </div>
-      </transition-group>
-      
-    </div>
-    <div class="col"></div>
+  <div class="col-sm-6 px-5">
+    <h3> Accepted Requests </h3>
+    <transition-group name="slam" tag="div">
+      <SongRequestCard
+        v-for="songRequest in acceptedSongRequests"
+        :key="songRequest.id"
+        :song-request="songRequest"
+        @set-playing="setPlaying"
+        @submit-remove="submitRemove"
+        @submit-comingup="submitComingUp"
+      />
+    </transition-group>
   </div>
+</div>
 </template>
 
 <script>
+import SongRequestCard from "../components/SongRequestCard.vue";
+
 export default {
   name: "AdminView",
-  components: {},
+  components: {
+    SongRequestCard,
+  },
   data: () => ({
     newtime: "10:00",
     // TODO: save id of last song request
@@ -87,6 +59,12 @@ export default {
         }
         return 0;
       });
+    },
+    acceptedSongRequests() {
+      return this.$store.state.songRequests.filter(request => request.status === 'coming_up');
+    },
+    incomingSongRequests() {
+      return this.$store.state.songRequests.filter(request => request.status !== 'coming_up');
     },
   },
   async mounted() {
@@ -112,7 +90,6 @@ export default {
         }),
       }).catch(console.error);
     },
-    // FIX ME!
     submitRemove(id) {
       // Remove the song request from the store
       this.$store.commit("removeSongRequest", id);
@@ -165,33 +142,6 @@ export default {
 <style scoped>
 .slam-enter-active {
   animation: slam-in 0.5s ease-out;
-}
-.shimmer {
-  animation: shimmer 1.5s infinite;
-  background: linear-gradient(to right, #f6f7f8 8%, #eaeaea 18%, #f6f7f8 33%);
-  background-size: 1000px 100%;
-}
-.loading {
-  animation: loading 2.5s forwards;
-  background: linear-gradient(to right, #eaeaea 50%, #f6f7f8 50%);
-  background-size: 200% 100%;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-@keyframes loading {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: 0 0;
-  }
 }
 @keyframes slam-in {
   0% {
