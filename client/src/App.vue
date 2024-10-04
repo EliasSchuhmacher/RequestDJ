@@ -1,45 +1,47 @@
 <template>
-  <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
-    <div class="container-fluid">
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="navbarNav" class="collapse navbar-collapse">
-        <ul class="navbar-nav me-auto">
-          <li v-if="$store.state.authenticated === false" class="nav-item">
-            <a class="nav-link" href="#" @click="redirect('/login')">Login</a>
-          </li>
-          <li v-if="$store.state.authenticated === false" class="nav-item">
-            <a class="nav-link" href="#" @click="redirect('/signup')">Sign up</a>
-          </li>
-          <li v-if="$store.state.authenticated === true" class="nav-item">
-            <a class="nav-link" href="#" @click="redirect('/admin')">{{
-              $store.state.username
-            }}</a>
-          </li>
-          <li v-if="$store.state.authenticated === true" class="nav-item">
-            <a class="nav-link" href="#" @click="logout()">Sign out</a>
-          </li>
-        </ul>
-        <ul class="navbar-nav ms-auto">
-          <li v-if="$store.state.authenticated === true" class="nav-item">
-            <a class="nav-link" href="#" @click="generateQRCode()">Generate QR Code</a>
-          </li>
-        </ul>
+  <div class="container-fluid vh-100 d-flex flex-column">
+    <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
+      <div class="container-fluid">
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div id="navbarNav" class="collapse navbar-collapse">
+          <ul class="navbar-nav me-auto">
+            <li v-if="$store.state.authenticated === false" class="nav-item">
+              <a class="nav-link" href="#" @click="redirect('/login')">Login</a>
+            </li>
+            <li v-if="$store.state.authenticated === false" class="nav-item">
+              <a class="nav-link" href="#" @click="redirect('/signup')">Sign up</a>
+            </li>
+            <li v-if="$store.state.authenticated === true" class="nav-item">
+              <a class="nav-link" href="#" @click="redirect('/admin')">{{
+                $store.state.username
+              }}</a>
+            </li>
+            <li v-if="$store.state.authenticated === true" class="nav-item">
+              <a class="nav-link" href="#" @click="logout()">Sign out</a>
+            </li>
+          </ul>
+          <ul class="navbar-nav ms-auto">
+            <li v-if="$store.state.authenticated === true" class="nav-item">
+              <a class="nav-link" href="#" @click="generateQRCode()">Generate QR Code</a>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </nav>
-  <section class="container-fluid py-3">
-    <router-view />
-  </section>
+    </nav>
+    <section class="h-100">
+      <router-view />
+    </section>
+  </div>
 </template>
 
 <script>
@@ -178,8 +180,7 @@ export default {
 <style>
 @import url("bootstrap/dist/css/bootstrap.css");
 
-html,
-body {
+html, body {
   /* https://designs.ai/colors */
 
   /* background-color: #c4ffff; */

@@ -1,36 +1,44 @@
 <template>
-  <div class="row mt-sm-4">
-  <div class="col-sm-6 px-sm-5 px-3">
+  <div class="row pt-sm-3 h-100">
+  <div class="col-sm-6 px-sm-5 px-3 d-flex flex-column custom-height pb-2">
     <h3> Incoming Requests </h3>
-    <p 
-      v-if="incomingSongRequests.length === 0"
-      class="lead fst-italic mt-3"
-    >
-      Waiting for requests, scan the QR code to send a song request...
-    </p>
-    <transition-group name="slam" tag="div">
-      <SongRequestCard
-        v-for="songRequest in incomingSongRequests"
-        :key="songRequest.id"
-        :song-request="songRequest"
-        @set-playing="setPlaying"
-        @submit-remove="submitRemove"
-        @submit-comingup="submitComingUp"
-      />
-    </transition-group>
+    <div class="overflow-auto h-100">
+      <p 
+        v-if="incomingSongRequests.length === 0"
+        class="lead fst-italic mt-3"
+      >
+        Waiting for requests, scan the QR code to send a song request...
+      </p>
+      <transition-group name="slam" tag="div">
+        <SongRequestCard
+          v-for="songRequest in incomingSongRequests"
+          :key="songRequest.id"
+          :song-request="songRequest"
+          :status="songRequest.status"
+          :incoming="true"
+          @set-playing="setPlaying"
+          @submit-remove="submitRemove"
+          @submit-comingup="submitComingUp"
+        />
+      </transition-group>
+    </div>
   </div>
-  <div class="col-sm-6 px-sm-5 px-3">
+  <div class="col-sm-6 px-sm-5 px-3 d-flex flex-column custom-height">
     <h3> Accepted Requests </h3>
-    <transition-group name="slam" tag="div">
-      <SongRequestCard
-        v-for="songRequest in acceptedSongRequests"
-        :key="songRequest.id"
-        :song-request="songRequest"
-        @set-playing="setPlaying"
-        @submit-remove="submitRemove"
-        @submit-comingup="submitComingUp"
-      />
-    </transition-group>
+    <div class="overflow-auto h-100">
+      <transition-group name="slam" tag="div">
+        <SongRequestCard
+          v-for="songRequest in acceptedSongRequests"
+          :key="songRequest.id"
+          :song-request="songRequest"
+          :status="songRequest.status"
+          :incoming="false"
+          @set-playing="setPlaying"
+          @submit-remove="submitRemove"
+          @submit-comingup="submitComingUp"
+        />
+      </transition-group>
+    </div>
   </div>
 </div>
 </template>
@@ -61,10 +69,10 @@ export default {
       });
     },
     acceptedSongRequests() {
-      return this.$store.state.songRequests.filter(request => request.status === 'coming_up');
+      return this.$store.state.songRequests.filter(request => request.status !== 'pending');
     },
     incomingSongRequests() {
-      return this.$store.state.songRequests.filter(request => request.status !== 'coming_up');
+      return this.$store.state.songRequests.filter(request => request.status === 'pending');
     },
   },
   async mounted() {
@@ -142,6 +150,15 @@ export default {
 <style scoped>
 .slam-enter-active {
   animation: slam-in 0.5s ease-out;
+}
+.custom-height {
+  height: 50%;
+}
+
+@media (min-width: 576px) {
+  .custom-height {
+    height: 100%;
+  }
 }
 @keyframes slam-in {
   0% {
