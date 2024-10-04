@@ -1,5 +1,5 @@
 <template>
-  <nav v-if="showNavbar" class="navbar navbar-expand-md navbar-dark">
+  <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
     <div class="container-fluid">
       <button
         class="navbar-toggler"
@@ -28,6 +28,8 @@
           <li v-if="$store.state.authenticated === true" class="nav-item">
             <a class="nav-link" href="#" @click="logout()">Sign out</a>
           </li>
+        </ul>
+        <ul class="navbar-nav ms-auto">
           <li v-if="$store.state.authenticated === true" class="nav-item">
             <a class="nav-link" href="#" @click="generateQRCode()">Generate QR Code</a>
           </li>

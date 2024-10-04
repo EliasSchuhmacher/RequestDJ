@@ -1,6 +1,6 @@
 <template>
-  <div class="row">
-  <div class="col-sm-6 px-5">
+  <div class="row mt-sm-4">
+  <div class="col-sm-6 px-sm-5 px-3">
     <h3> Incoming Requests </h3>
     <p 
       v-if="incomingSongRequests.length === 0"
@@ -19,7 +19,7 @@
       />
     </transition-group>
   </div>
-  <div class="col-sm-6 px-5">
+  <div class="col-sm-6 px-sm-5 px-3">
     <h3> Accepted Requests </h3>
     <transition-group name="slam" tag="div">
       <SongRequestCard
