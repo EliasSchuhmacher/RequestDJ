@@ -45,13 +45,45 @@ const router = createRouter({
 });
 
 // Setup authentication guard.
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   if (to.path === "/admin" && !store.state.authenticated) {
     console.info("Unauthenticated user. Redirecting to login page.");
     next("/login");
-  } else {
-    next();
+    return;
+  } 
+  
+  // Handle DJ existence check for "/requestsong/:DJ_name"
+  if (to.path.startsWith("/requestsong/")) {
+    const djName = to.params.DJ_name;
+    //const validDJs = store.state.djList; // Assume the list of DJs is stored in Vuex
+    try {
+      const response = await fetch(`/api/check_dj_exist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ djName }),
+      });
+
+      if (response.ok) {
+        next(); // DJ exists, proceed to the route
+        return;
+      } else {
+        console.info(`DJ ${djName} not found. Redirecting to not found page.`);
+        next("/not-found"); // DJ does not exist, redirect to "not found"
+      }
+    } catch (error) {
+      console.error("Error occurred.", error);
+      next("/not-found"); // Redirect to "not found" in case of a network error
+    }
+
+    // If the DJ does not exist, redirect to a "not found" page
+  if (!validDJs || !validDJs.includes(djName)) {
+      console.info(`DJ ${djName} not found. Redirecting to not found page.`);
+      next("/not-found"); // Or use another appropriate route
+      return;
+    }
   }
+
+  next()
 });
 
 export default router;
