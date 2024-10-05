@@ -1,8 +1,8 @@
 <template>
   <div class="row pt-sm-3 h-100">
-  <div class="col-sm-6 px-sm-5 px-3 d-flex flex-column custom-height pb-2">
-    <h3> Incoming Requests </h3>
-    <div class="overflow-auto h-100">
+  <div class="col-sm-6 d-flex flex-column custom-height pb-2">
+    <h3 class="px-sm-5"> Incoming Requests </h3>
+    <div class="overflow-auto px-sm-5 h-100">
       <p 
         v-if="incomingSongRequests.length === 0"
         class="lead fst-italic mt-3"
@@ -23,9 +23,9 @@
       </transition-group>
     </div>
   </div>
-  <div class="col-sm-6 px-sm-5 px-3 d-flex flex-column custom-height">
-    <h3> Accepted Requests </h3>
-    <div class="overflow-auto h-100">
+  <div class="col-sm-6 d-flex flex-column custom-height">
+    <h3 class="px-sm-5"> Accepted Requests </h3>
+    <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
         <SongRequestCard
           v-for="songRequest in acceptedSongRequests"
@@ -69,7 +69,7 @@ export default {
       });
     },
     acceptedSongRequests() {
-      return this.$store.state.songRequests.filter(request => request.status !== 'pending');
+      return this.$store.state.songRequests.filter(request => request.status !== 'pending').reverse();
     },
     incomingSongRequests() {
       return this.$store.state.songRequests.filter(request => request.status === 'pending');

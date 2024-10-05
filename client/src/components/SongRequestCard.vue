@@ -6,7 +6,7 @@
     <div class="px-3 py-2 d-flex justify-content-between align-items-center">
       <div v-if="songRequest.song_title" class="d-flex align-items-center w-100">
         <i class="fas fa-music me-3"></i>
-        <strong class="overflow-hidden text-truncate small">{{ songRequest.song_title }}</strong>
+        <span class="overflow-hidden small">{{ songRequest.song_title }}</span>
         <span v-if="songRequest.song_artist"> by {{ songRequest.song_artist }} </span>
       </div>
       <div v-else>

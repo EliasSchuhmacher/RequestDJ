@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid vh-100 d-flex flex-column">
     <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
-      <div class="container-fluid">
+      <div class="container-fluid px-0">
         <button
           class="navbar-toggler"
           type="button"
