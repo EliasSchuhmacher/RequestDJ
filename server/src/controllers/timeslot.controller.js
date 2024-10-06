@@ -86,7 +86,7 @@ router.post("/check_dj_exist", async (req, res) => {
   // Log all DJs to the console for debugging
   
   if (existingUser) {
-    // User already exists bitch
+    // User already exist
     res.status(200).send();
   } else {
     res.status(404).json({ message: "Dj not found" });
