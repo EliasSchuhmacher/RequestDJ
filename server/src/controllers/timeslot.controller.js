@@ -72,6 +72,28 @@ router.get("/spotify/token", async (req, res) => {
   }
 });
 
+router.post("/check_dj_exist", async (req, res) => {
+  const DJ_name = req.body.djName.trim();
+  
+  
+  const existingUser = await db.get(
+    "SELECT name FROM assistants WHERE name=?",
+    DJ_name
+  ); 
+  console.log(existingUser)
+  console.log("vi är i check_dj_exist, efter existingUser")
+  //const allDJs = await db.all("SELECT name FROM assistants");  
+  // Log all DJs to the console for debugging
+  
+  if (existingUser) {
+    // User already exist
+    res.status(200).send();
+  } else {
+    res.status(404).json({ message: "Dj not found" });
+  }
+});
+
+
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
   const { DJ_name, song_title, song_artist } = req.body;
