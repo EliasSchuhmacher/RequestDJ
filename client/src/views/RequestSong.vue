@@ -261,6 +261,7 @@ export default {
         return;
       }
 
+      this.requestSent = true;
       // Send the booking to server via AJAX-post request
       fetch(`/api/songs`, {
         method: "POST",
@@ -281,10 +282,10 @@ export default {
         return response;
       })
       .then(() => {
-        this.requestSent = true;
         localStorage.setItem("lastRequestTime", currentTime);
       })
       .catch(error => {
+        this.requestSent = false;
         this.errorMessage = error.message;
       });
     },
