@@ -11,7 +11,6 @@
           <p class="lead py-3 text-center">
             Provide song details:
           </p>
-          <h1 class="text-center">{{ countDown }}</h1>
           <div class="form-floating mb-3 mt-3">
             <input
               id="song_title"
@@ -60,8 +59,14 @@
           <p v-else class="text-center text-lead">
             Awaiting DJ response...
           </p>
-          <button type="button" class="btn btn-primary w-100" @click="reset()">
-            Request Another Song
+          <button 
+            type="button"
+            class="btn btn-primary w-100" 
+            :disabled="requestAnotherSongDisabled"
+            @click="reset()"
+          >
+            <span>Request Another Song </span>
+            <span v-if="requestAnotherSongDisabled">- available in {{ formattedCountdown }} </span>
           </button>
         </div>
       </div>
@@ -90,15 +95,24 @@ export default {
   },
   data: () => ({
     song_title: "",
-    //song_artist: "",
+    // song_artist: "",
     suggestions: [], // Initialize as an empty array
     requestSent: false,
     errorMessage: "",
     msg: "",
-    countDown: "",
+    countdown: 0,
+    requestAnotherSongDisabled: false,
+    timeoutLength: 15 * 1000,
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),
+  computed: {
+    formattedCountdown() {
+      const minutes = Math.floor(this.countdown / 60000);
+      const seconds = Math.floor((this.countdown % 60000) / 1000);
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+  },
   
   created() {
     // Initialize the debounced function with a delay of 300ms
@@ -113,6 +127,7 @@ export default {
       console.error("Error fetching token on mount:", error);
     }
   },
+
 
   methods: {
     validateEmail() {
@@ -201,17 +216,27 @@ export default {
       }
       // Reset the error message
       this.errorMessage = "";
+    
+      this.requestAnotherSongDisabled = true;
+      this.countdown = this.timeoutLength;
+      // Set requestAnotherSongDisabled to false after 15 seconds
+      const interval = setInterval(() => {
+        if (this.countdown > 0) {
+          this.countdown -= 1000;
+        } else {
+          this.requestAnotherSongDisabled = false;
+          clearInterval(interval);
+        }
+      }, 1000);
       
       // Check if the user has made a request in the last 30 minutes
       const lastRequestTime = localStorage.getItem("lastRequestTime");
-      const thirtyMinutes = 15 * 1000;
       const currentTime = new Date().getTime();
-      if (lastRequestTime && currentTime - lastRequestTime < thirtyMinutes) {
+      if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
         console.log("Please wait before making another request.");
         this.errorMessage = "You can only request a song every 15 seconds.";
         return;
-
-  }
+      }
 
       // Send the booking to server via AJAX-post request
       fetch(`/api/songs`, {
@@ -224,11 +249,21 @@ export default {
           DJ_name: this.DJ_name,
         }),
       })
-        .catch(console.error)
-        .then(() => {
-          this.requestSent = true;
-          localStorage.setItem("lastRequestTime", currentTime);
-        });
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(error => {
+            throw new Error(error.message || "An error occurred");
+          });
+        }
+        return response;
+      })
+      .then(() => {
+        this.requestSent = true;
+        localStorage.setItem("lastRequestTime", currentTime);
+      })
+      .catch(error => {
+        this.errorMessage = error.message;
+      });
     },
     
     reset() {

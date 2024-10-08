@@ -4,18 +4,13 @@ import expressSession from "express-session";
 import socketIOSession from "express-socket.io-session";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import dotenv from 'dotenv'; // kör npm install
+import './dotenv.js'; // kör npm install
 import { resolvePath } from "./util.js";
 import Model from "./model.js";
 import admin from "./controllers/admin.controller.js";
 import auth from "./controllers/auth.controller.js";
 import timeslot from "./controllers/timeslot.controller.js";
 import sessionStore from './sessionStore.js'; // Import the session store
-
-
-// Load environment variables from .env file
-dotenv.config();
-
 import db from './dbPG.js';
 
 

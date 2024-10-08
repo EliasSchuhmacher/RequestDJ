@@ -75,10 +75,12 @@ router.post("/check_dj_exist", async (req, res) => {
   const DJ_name = req.body.djName.trim();
   
   
-  const existingUser = await db.get(
-    "SELECT name FROM assistants WHERE name=?",
-    DJ_name
-  ); 
+  const result = await db.query(
+    "SELECT name FROM users WHERE name = $1",
+    [DJ_name]
+  );
+  const existingUser = result.rows[0];
+  
   console.log(existingUser)
   console.log("vi är i check_dj_exist, efter existingUser")
   //const allDJs = await db.all("SELECT name FROM assistants");  
@@ -103,10 +105,11 @@ router.post("/songs", async (req, res) => {
     res.status(400).send();
     return;
   }
+
   const DJresult = await db.query("SELECT * FROM users WHERE name = $1;", [DJ_name]);
   if (DJresult.rowCount === 0) {
     // DJ does not exist, send response code 404;
-    res.status(404).json({ message: "Invalid DJ name" });
+    res.status(404).json({ message: "Invalid DJ name in URL" });
     return;
   }
 
@@ -118,7 +121,10 @@ router.post("/songs", async (req, res) => {
     "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id) VALUES ($1, $2, $3, $4) RETURNING id;",
     [DJ_name, song_title, song_artist, requester_session_id]
   );
-  // console.log("Insert result: ", insertResult);
+
+  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
+  res.status(200).end();
+
   const newId = insertResult.rows[0].id;
   // console.log("New ID: ", newId);
 
@@ -133,8 +139,6 @@ router.post("/songs", async (req, res) => {
   // TODO: Send websocket message only to correct DJ instead of broadcasting
   Model.broadcastNewSongRequest(songRequest);
 
-  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
-  res.status(200).end();
 });
 
 
