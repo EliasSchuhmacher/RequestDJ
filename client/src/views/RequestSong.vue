@@ -117,6 +117,29 @@ export default {
   created() {
     // Initialize the debounced function with a delay of 300ms
     this.debouncedSearch = this.debounce(this.searchSpotify, 300);
+
+    // Check if lastRequestTime is stored in localStorage, and if so, check if the user has to wait
+    // This is triggered when the page is refreshed
+    const lastRequestTime = localStorage.getItem("lastRequestTime");
+    if (lastRequestTime) {
+      const currentTime = new Date().getTime();
+      const timeElapsed = currentTime - lastRequestTime;
+      if (timeElapsed < this.timeoutLength) {
+        this.requestSent = true;
+        this.requestAnotherSongDisabled = true;
+        this.countdown = this.timeoutLength - timeElapsed;
+        // Set requestAnotherSongDisabled to false after the remaining time
+        // And also setup the countdown timer
+        const interval = setInterval(() => {
+          if (this.countdown > 1000) {
+            this.countdown -= 1000;
+          } else {
+            this.requestAnotherSongDisabled = false;
+            clearInterval(interval);
+          }
+        }, 1000);
+      }
+    }
   },
   
   async mounted() {
