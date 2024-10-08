@@ -204,11 +204,11 @@ export default {
       
       // Check if the user has made a request in the last 30 minutes
       const lastRequestTime = localStorage.getItem("lastRequestTime");
-      const thirtyMinutes = 30 * 60 * 1000;
+      const thirtyMinutes = 15 * 1000;
       const currentTime = new Date().getTime();
       if (lastRequestTime && currentTime - lastRequestTime < thirtyMinutes) {
         console.log("Please wait before making another request.");
-        this.errorMessage = "You can only request a song every 30 minutes.";
+        this.errorMessage = "You can only request a song every 15 seconds.";
         return;
 
   }
