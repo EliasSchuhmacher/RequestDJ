@@ -66,7 +66,7 @@
             @click="reset()"
           >
             <span>Request Another Song </span>
-            <span v-if="requestAnotherSongDisabled">- available in {{ formattedCountdown }} </span>
+            <span v-if="requestAnotherSongDisabled">- {{ formattedCountdown }} </span>
           </button>
         </div>
       </div>
