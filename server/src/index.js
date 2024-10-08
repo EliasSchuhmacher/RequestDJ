@@ -4,21 +4,29 @@ import expressSession from "express-session";
 import socketIOSession from "express-socket.io-session";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import dotenv from 'dotenv'; // kör npm install
+import './dotenv.js'; // kör npm install
 import { resolvePath } from "./util.js";
 import Model from "./model.js";
 import admin from "./controllers/admin.controller.js";
 import auth from "./controllers/auth.controller.js";
 import timeslot from "./controllers/timeslot.controller.js";
 import sessionStore from './sessionStore.js'; // Import the session store
+import db from './dbPG.js';
 
-// Load environment variables from .env file
-dotenv.config();
 
 const port = process.env.PORT || 8989;
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
+
+// Connectt to the database
+db.connect().then(() => {
+  console.log('Connected to PostgreSQL database');
+})
+.catch((err) => {
+  console.error('Error connecting to PostgreSQL database', err);
+});;
+
 
 // const sessionStore = new expressSession.MemoryStore();
 

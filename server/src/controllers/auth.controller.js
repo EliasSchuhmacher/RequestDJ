@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import Model from "../model.js";
-import db from "../db.js";
+import db from "../dbPG.js";
 
 const router = Router();
 
@@ -46,10 +46,10 @@ router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   // Check the database for password match: Use bcrypt later on
-  const dbPassword = await db.get(
-    "SELECT password FROM assistants WHERE name=?",
-    username
-  );
+  const { rows } = await db.query(
+    "SELECT password FROM users WHERE name=$1",
+    [username]);
+    const dbPassword = rows[0]?.password;
 
   // console.log(dbPassword);
 
@@ -59,7 +59,7 @@ router.post("/login", async (req, res) => {
     return;
   }
 
-  bcrypt.compare(password, dbPassword.password, (err, result) => {
+  bcrypt.compare(password, dbPassword, (err, result) => {
     if (result === true) {
       // Password matched! Let the user log in.
       console.log("password matched!");
@@ -91,10 +91,12 @@ router.post("/signup", async (req, res) => {
   }
 
   // Check if the user already exists
-  const existingUser = await db.get(
-    "SELECT name FROM assistants WHERE name=?",
-    username
+  const result = await db.query(
+    "SELECT name FROM users WHERE name=$1",
+    [username]
   );
+  const existingUser = result.rows[0];
+
 
   if (existingUser) {
     // User already exists bitch
@@ -106,8 +108,8 @@ router.post("/signup", async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // Insert the new user into the database
-  await db.run(
-    "INSERT INTO assistants (name, password) VALUES (?, ?)",
+  await db.query(
+    "INSERT INTO users (name, password) VALUES ($1, $2)",
     [username, hashedPassword]
   );
 

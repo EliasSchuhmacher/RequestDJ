@@ -1,8 +1,7 @@
 /* eslint-disable camelcase */
 import { Router } from "express";
 import Model from "../model.js";
-import db from "../db.js";
-import sessionStore from "../sessionStore.js";
+import db from "../dbPG.js";
 
 const router = Router();
 
@@ -76,10 +75,12 @@ router.post("/check_dj_exist", async (req, res) => {
   const DJ_name = req.body.djName.trim();
   
   
-  const existingUser = await db.get(
-    "SELECT name FROM assistants WHERE name=?",
-    DJ_name
-  ); 
+  const result = await db.query(
+    "SELECT name FROM users WHERE name = $1",
+    [DJ_name]
+  );
+  const existingUser = result.rows[0];
+  
   console.log(existingUser)
   console.log("vi är i check_dj_exist, efter existingUser")
   //const allDJs = await db.all("SELECT name FROM assistants");  
@@ -105,25 +106,39 @@ router.post("/songs", async (req, res) => {
     return;
   }
 
+  const DJresult = await db.query("SELECT * FROM users WHERE name = $1;", [DJ_name]);
+  if (DJresult.rowCount === 0) {
+    // DJ does not exist, send response code 404;
+    res.status(404).json({ message: "Invalid DJ name in URL" });
+    return;
+  }
+
   // Get the session id of the requester, and store it with the song request
   const requester_session_id = req.sessionID;
 
   // Insert song request into database
-  db.run("INSERT INTO SongRequests (DJ_username, song_title, song_artist, requester_session_id) VALUES (?, ?, ?, ?);",
-    [DJ_name, song_title, song_artist, requester_session_id]);
+  const insertResult = await db.query(
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id) VALUES ($1, $2, $3, $4) RETURNING id;",
+    [DJ_name, song_title, song_artist, requester_session_id]
+  );
 
-  // Retrieve the newly inserted song request
-  const { newId } = await db.get("SELECT last_insert_rowid() AS newId;");
+  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
+  res.status(200).end();
+
+  const newId = insertResult.rows[0].id;
+  // console.log("New ID: ", newId);
+
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
-  const songRequest = await db.get("SELECT id, song_title, song_artist, request_date, status, dj_username FROM SongRequests WHERE id = ?;", [newId]);
-
+  const result = await db.query(
+    "SELECT id, song_title, song_artist, request_date, status, dj_username FROM songrequests WHERE id = $1;",
+    [newId]
+  );
+  const songRequest = result.rows[0];
   console.log("Song Title: ", songRequest.song_title);
 
   // TODO: Send websocket message only to correct DJ instead of broadcasting
   Model.broadcastNewSongRequest(songRequest);
 
-  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
-  res.status(200).end();
 });
 
 
