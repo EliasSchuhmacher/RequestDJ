@@ -33,7 +33,7 @@
           />
           <label for="password">Enter password:</label>
         </div>
-        <button type="submit" class="btn btn-dark mt-4 float-end">OK</button>
+        <button type="submit" class="btn btn-dark mt-4 w-100" :disabled="isLoading">OK</button>
       </form>
     </div>
     <div class="col"></div>
@@ -48,22 +48,15 @@ export default {
     username: "",
     password: "",
     msg: "",
+    isLoading: false,
   }),
   methods: {
     authenticate() {
       const { commit } = this.$store;
       const { push } = this.$router;
 
-      // Client side check that username fits criteria
-      // if (
-      //   !/[A-Za-z]/.test(this.username) ||
-      //   !/[0-9]/.test(this.username) ||
-      //   this.username.length < 3
-      // ) {
-      //   this.msg =
-      //     "Username must be at least 3 characters long, and contain at least one letter and one number";
-      //   return;
-      // }
+      // Set loading state to true
+      this.isLoading = true;
 
       // Make an ajax post request to server with login details as request body
       fetch("/api/login", {
@@ -84,7 +77,11 @@ export default {
             this.msg = "Invalid Username/Password";
           }
         })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => {
+          // Set loading state to false
+          this.isLoading = false;
+        });
     },
   },
 };
