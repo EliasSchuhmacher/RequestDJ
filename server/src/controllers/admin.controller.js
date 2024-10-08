@@ -1,7 +1,6 @@
 import { Router } from "express";
 import Model from "../model.js";
-import Timeslot from "../models/timeslot.model.js";
-import db from "../db.js";
+import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
 
 const router = Router();
@@ -41,10 +40,11 @@ router.get("/songs/:username", async (req, res) => {
   }
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
-  const songRequests = await db.all(
-    'SELECT id, song_title, song_artist, request_date, status, dj_username FROM SongRequests WHERE dj_username = ?;',
-    username
+  const result = await db.query(
+    'SELECT id, song_title, song_artist, request_date, status, dj_username FROM songrequests WHERE dj_username = $1;',
+    [username]
   );
+  const songRequests = result.rows;
 
   res.status(200).json({ songRequests });
 });
@@ -54,7 +54,11 @@ router.post("/playsong", async (req, res) => {
   const { id } = req.body;
   console.log("Play song called for id:", id);
 
-  const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
+  const result = await db.query(
+    "SELECT * FROM songrequests WHERE id=$1",
+    [id]
+  );
+  const song = result.rows[0];
 
   // Check that song exists
   if (!song) {
@@ -72,8 +76,10 @@ router.post("/playsong", async (req, res) => {
   }
 
   // Remove the song request:
-  db.run("DELETE FROM SongRequests WHERE id=?", [id]);
-
+  db.query(
+    "DELETE FROM songrequests WHERE id=$1",
+    [id]
+  );
   // Retrieve websocket id of requester
   sessionStore.get(song.requester_session_id, (err, session) => {
     if (err) {
@@ -102,7 +108,11 @@ router.post("/comingup", async (req, res) => {
   const { id } = req.body;
   console.log("Coming up called for id:", id);
 
-  const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
+  const result = await db.query(
+    "SELECT * FROM songrequests WHERE id=$1",
+    [id]
+  );
+  const song = result.rows[0];
 
   // Check that song exists
   if (!song) {
@@ -120,8 +130,10 @@ router.post("/comingup", async (req, res) => {
   }
 
   // Update the song request status to "coming_up":
-  db.run("UPDATE SongRequests SET status='coming_up' WHERE id=?", [id]);
-
+  db.query(
+    "UPDATE songrequests SET status='coming_up' WHERE id=$1",
+    [id]
+  );
   // Retrieve websocket id of requestert in order to alert them
   sessionStore.get(song.requester_session_id, (err, session) => {
     if (err) {
@@ -150,7 +162,11 @@ router.post("/removesong", async (req, res) => {
   const { id } = req.body;
   console.log("Remove song called for id:", id);
 
-  const song = await db.get("SELECT * FROM SongRequests WHERE id=?", [id]);
+  const result = await db.query(
+    "SELECT * FROM songrequests WHERE id=$1",
+    [id]
+  );
+  const song = result.rows[0];
 
   // Check that song exists
   if (!song) {
@@ -168,8 +184,11 @@ router.post("/removesong", async (req, res) => {
   }
 
   // Remove the song request:
-  db.run("DELETE FROM SongRequests WHERE id=?", [id]);
-
+  db.query(
+    "DELETE FROM songrequests WHERE id=$1",
+    [id]
+  );
+  
   // Retrieve websocket id of requester in order to alert them
   sessionStore.get(song.requester_session_id, (err, session) => {
     if (err) {
