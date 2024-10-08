@@ -12,7 +12,9 @@ const db = new Pool ({
     database: PG_DATABASE,
     user: PG_USER,
     password: PG_PASSWORD,
-    ssl: true
+    ssl: {
+        rejectUnauthorized: false
+    }
 })
 
 export default db;
