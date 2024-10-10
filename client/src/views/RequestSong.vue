@@ -70,6 +70,9 @@
           </button>
         </div>
       </div>
+      <p v-if="requestSent" class="text-center mt-3">
+        <a href="https://forms.gle/guNj45pjAkyZN2Ju5" class="text-dark">Lämna gärna feedback!</a>
+      </p>
     </div>
     <div class="col"></div>
   </div>
