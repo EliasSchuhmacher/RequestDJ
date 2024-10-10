@@ -95,7 +95,9 @@ export default {
       })
       .then(() => {
         console.log(getters.isAuthenticated);
-        if (getters.isAuthenticated === true) {
+        const currentPath = window.location.pathname;
+        console.log("Current path: ", currentPath);
+        if (getters.isAuthenticated === true  && !currentPath.includes("/requestsong/")) {
           push("/admin");
         }
         // push(getters.isAuthenticated === true ? "/admin" : "/login");

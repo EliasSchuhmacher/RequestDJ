@@ -1,6 +1,7 @@
 {
   "author": "",
   "dependencies": {
+    "pg": "^8.13.0",
     "bcrypt": "^5.1.0",
     "better-logging": "^5.0.0",
     "connect-sqlite3": "^0.9.15",
