@@ -102,7 +102,7 @@ export default {
     msg: "",
     countdown: 0,
     requestAnotherSongDisabled: false,
-    timeoutLength: 15 * 1000,
+    timeoutLength: 3 * 60 * 1000,
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),
@@ -257,7 +257,7 @@ export default {
       const currentTime = new Date().getTime();
       if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
         console.log("Please wait before making another request.");
-        this.errorMessage = "You can only request a song every 15 seconds.";
+        this.errorMessage = "You can only request a song every 3 minutes.";
         return;
       }
 
