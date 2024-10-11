@@ -1,6 +1,6 @@
 <template>
   <div class="row pt-sm-3 h-100">
-  <div class="col-sm-6 d-flex flex-column custom-height pb-2">
+  <div class="col-sm-6 d-flex flex-column custom-height pb-2 pb-sm-0">
     <h3 class="px-sm-5"> Incoming Requests </h3>
     <div class="overflow-auto px-sm-5 h-100">
       <p 
@@ -21,6 +21,7 @@
           @submit-comingup="submitComingUp"
         />
       </transition-group>
+      <div class="py-4"></div>
     </div>
   </div>
   <div class="col-sm-6 d-flex flex-column custom-height">
@@ -38,6 +39,7 @@
           @submit-comingup="submitComingUp"
         />
       </transition-group>
+      <div class="py-4"></div>
     </div>
   </div>
 </div>

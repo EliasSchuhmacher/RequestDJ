@@ -38,7 +38,7 @@
         </div>
       </div>
     </nav>
-    <section class="h-100">
+    <section class="flex-grow-1 overflow-hidden">
       <router-view />
     </section>
   </div>
