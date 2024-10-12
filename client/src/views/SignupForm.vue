@@ -47,7 +47,7 @@
 
         <button type="submit" class="btn btn-dark mt-4 w-100">Sign Up</button>
         <p class="mt-3 text-center">
-          Already have an account? <a href="/login" class="text-dark">Log in</a>
+          Already have an account? <router-link to="/login" class="text-dark">Log in</router-link>
         </p>
       </form>
     </div>

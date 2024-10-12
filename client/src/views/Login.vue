@@ -35,7 +35,7 @@
         </div>
         <button type="submit" class="btn btn-dark mt-4 w-100" :disabled="isLoading">OK</button>
         <p class="mt-3 text-center">
-          No account yet? <a href="/signup" class="text-dark">Sign up</a>
+          No account yet? <router-link to="/signup" class="text-dark">Sign up</router-link>
         </p>
       </form>
     </div>
