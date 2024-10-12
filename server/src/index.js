@@ -106,6 +106,7 @@ io.on("connection", (socket) => {
     else {
       console.log("New Websocket connection from sessionID: ", sessionID);
       // console.debug(`Saved socketID: ${session.socketID}`)};
+    }
   });
 
   // BONUS 4X (Inactivity handling using socket.io):
