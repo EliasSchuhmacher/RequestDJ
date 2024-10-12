@@ -104,7 +104,7 @@ io.on("connection", (socket) => {
   session.save((err) => {
     if (err) console.error(err);
     else {
-      console.log("New Websocket connection from sessionID: ", sessionID);
+      console.log("New WS connection from sessionID: ", sessionID);
       // console.debug(`Saved socketID: ${session.socketID}`)};
     }
   });
