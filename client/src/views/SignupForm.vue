@@ -1,5 +1,5 @@
 <template>
-  <div class="row pb-3">
+  <div class="row pb-3 mt-4">
     <div class="col d-flex justify-content-center">
       <h1>Sign up</h1>
     </div>
@@ -44,7 +44,11 @@
           />
           <label for="confirmPassword">Confirm password:</label>
         </div>
-        <button type="submit" class="btn btn-dark mt-4 float-end">Sign Up</button>
+
+        <button type="submit" class="btn btn-dark mt-4 w-100">Sign Up</button>
+        <p class="mt-3 text-center">
+          Already have an account? <a href="/login" class="text-dark">Log in</a>
+        </p>
       </form>
     </div>
     <div class="col"></div>

@@ -148,12 +148,12 @@ export default {
       // }
       const data = encodeURIComponent(`${qrcodeURL}${this.$store.state.username}`);  
       const size = 300;
-      const windowSize = 500;
+      const windowSize = 400;
       // const config = encodeURIComponent(JSON.stringify({}));
       // const file = "png";
       // const download = false;
 
-      const qrCodeUrl = `https://quickchart.io/qr?text=${data}&caption=Scan%20to%20Request%20Music&captionFontFamily=sanserif&captionFontSize=20&size=${size}`;
+      const qrCodeUrl = `https://quickchart.io/qr?text=${data}&caption=Scan%20to%20Request%20Song&captionFontFamily=sanserif&captionFontSize=30&size=${size}`;
       // https://quickchart.io/qr?text=https://requestdj.onrender.com/requestsong/&caption=Scan%20to%20Request%20Music&captionFontFamily=sanserif&captionFontSize=20$size=300
       // const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${data}`;
       window.open(qrCodeUrl, "_blank", `width=${windowSize},height=${windowSize}`);

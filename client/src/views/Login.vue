@@ -1,7 +1,7 @@
 <template>
-  <div class="row pb-3">
+  <div class="row pb-3 mt-4">
     <div class="col d-flex justify-content-center">
-      <h1>DJ login</h1>
+      <h1>DJ Login</h1>
     </div>
   </div>
   <div class="row">
@@ -34,6 +34,9 @@
           <label for="password">Enter password:</label>
         </div>
         <button type="submit" class="btn btn-dark mt-4 w-100" :disabled="isLoading">OK</button>
+        <p class="mt-3 text-center">
+          No account yet? <a href="/signup" class="text-dark">Sign up</a>
+        </p>
       </form>
     </div>
     <div class="col"></div>

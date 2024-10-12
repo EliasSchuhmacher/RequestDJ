@@ -66,6 +66,9 @@ io.use(
   })
 );
 
+// Serve the landing page for the root URL
+app.use('/', express.static(resolvePath("client", "public", "landing")));
+
 // Serve static files
 app.use(express.static(resolvePath("client", "dist")));
 
@@ -101,8 +104,8 @@ io.on("connection", (socket) => {
   session.save((err) => {
     if (err) console.error(err);
     else {
-      console.log("sessionID: ", sessionID);
-      console.debug(`Saved socketID: ${session.socketID}`)};
+      console.log("New Websocket connection from sessionID: ", sessionID);
+      // console.debug(`Saved socketID: ${session.socketID}`)};
   });
 
   // BONUS 4X (Inactivity handling using socket.io):

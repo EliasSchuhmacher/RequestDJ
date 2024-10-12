@@ -8,8 +8,11 @@
           v-if="!requestSent"
           class="card-body"
         >
-          <p class="lead py-3 text-center">
+          <p class="lead pt-3 text-center">
             Provide song details:
+          </p>
+          <p class="text-center small">
+            The DJ will have the choice to play or reject your song.
           </p>
           <div class="form-floating mb-3 mt-3">
             <input

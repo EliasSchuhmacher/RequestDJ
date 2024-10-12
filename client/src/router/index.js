@@ -2,8 +2,6 @@ import { createRouter, createWebHistory } from "vue-router";
 import store from "../store";
 import Login from "../views/Login.vue";
 import Admin from "../views/Admin.vue";
-import ShowTimeslots from "../views/ShowTimeslots.vue";
-import Booking from "../views/Booking.vue";
 import SignupForm from "../views/SignupForm.vue";
 import RequestSong from "../views/RequestSong.vue";
 
@@ -23,14 +21,6 @@ const routes = [
   {
     path: "/admin",
     component: Admin,
-  },
-  {
-    path: "/timeslots",
-    component: ShowTimeslots,
-  },
-  {
-    path: "/booking",
-    component: Booking,
   },
   {
     path: "/requestsong/:DJ_name",
