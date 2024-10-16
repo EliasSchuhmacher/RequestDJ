@@ -1,12 +1,12 @@
 <template>
-  <div class="row pb-3 mt-4">
-    <div class="col d-flex justify-content-center">
-      <h1>Sign up</h1>
-    </div>
-  </div>
-  <div class="row">
+  <div class="row mt-5">
     <div class="col"></div>
-    <div class="col-8 col-md-4">
+    <div class="col-8 col-md-5 p-5 shadow bg-secondary-custom rounded">
+      <div class="row pb-3 mt-4">
+        <div class="col d-flex justify-content-center">
+          <h1>Sign up</h1>
+        </div>
+      </div>
       <div v-if="msg !== ''" class="alert alert-danger">
         <strong>Error! </strong>{{ msg }}
       </div>
@@ -16,7 +16,7 @@
             id="username"
             v-model="username"
             type="text"
-            class="form-control"
+            class="form-control bg-primary-custom text-light border-secondary"
             placeholder="username..."
             required
           />
@@ -27,7 +27,7 @@
             id="password"
             v-model="password"
             type="password"
-            class="form-control"
+            class="form-control bg-primary-custom text-light border-secondary"
             placeholder="password..."
             required
           />
@@ -38,7 +38,7 @@
             id="confirmPassword"
             v-model="confirmPassword"
             type="password"
-            class="form-control"
+            class="form-control bg-primary-custom text-light border-secondary"
             placeholder="confirm password..."
             required
           />
@@ -47,7 +47,7 @@
 
         <button type="submit" class="btn btn-dark mt-4 w-100">Sign Up</button>
         <p class="mt-3 text-center">
-          Already have an account? <router-link to="/login" class="text-dark">Log in</router-link>
+          Already have an account? <router-link to="/login" class="text-light">Log in</router-link>
         </p>
       </form>
     </div>

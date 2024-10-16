@@ -3,7 +3,7 @@
   <div class="row">
     <div class="col"></div>
     <div class="col-sm-6">
-      <div class="card shadow-lg mt-5">
+      <div class="card shadow-lg mt-5 bg-secondary-custom text-light">
         <div 
           v-if="!requestSent"
           class="card-body"
@@ -19,13 +19,13 @@
               id="song_title"
               v-model="song_title"
               type="text"
-              class="form-control"
+              class="form-control bg-primary-custom text-light border-0"
               placeholder="Enter Song Title..."
               name="song_title"
               @input="debouncedSearch"
             />
             <label for="song_title">Enter Song Title or/and Artist:</label>
-            <ul v-if="suggestions.length" class="suggestions-list">
+            <ul v-if="suggestions.length" class="suggestions-list bg-primary-custom">
               <li
                 v-for="(suggestion, index) in suggestions"
                 :key="index"
@@ -42,7 +42,7 @@
               id="requester_name"
               v-model="requester_name"
               type="text"
-              class="form-control"
+              class="form-control bg-primary-custom text-light border-0"
               placeholder="Enter Your Name (Optional)..."
               name="requester_name"
             />
@@ -87,7 +87,7 @@
         </div>
       </div>
       <p v-if="requestSent" class="text-center mt-3">
-        <a href="https://forms.gle/guNj45pjAkyZN2Ju5" class="text-dark">Lämna gärna feedback!</a>
+        <a href="https://forms.gle/guNj45pjAkyZN2Ju5" class="text-light">Lämna gärna feedback!</a>
       </p>
     </div>
     <div class="col"></div>
