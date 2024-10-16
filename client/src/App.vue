@@ -15,6 +15,9 @@
         </button>
         <div id="navbarNav" class="collapse navbar-collapse">
           <ul class="navbar-nav me-auto">
+            <li class="navbar-item">
+              <a class="nav-link fw-bold" href="/">RequestDJ</a>
+            </li>
             <li v-if="$store.state.authenticated === false" class="nav-item">
               <a class="nav-link" href="#" @click="redirect('/login')">Login</a>
             </li>
