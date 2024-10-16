@@ -97,7 +97,8 @@ router.post("/check_dj_exist", async (req, res) => {
 
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
-  const { DJ_name, song_title, song_artist } = req.body;
+  // song genre and requester_name defaults to empty string, if not provided
+  const { DJ_name, song_title, song_artist, song_genre = '', requester_name = '' } = req.body; 
 
   // Make sure DJ_name, song_name or artist are supplied in request
   if (!DJ_name || (!song_title && !song_artist)) {
@@ -118,8 +119,8 @@ router.post("/songs", async (req, res) => {
 
   // Insert song request into database
   const insertResult = await db.query(
-    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id) VALUES ($1, $2, $3, $4) RETURNING id;",
-    [DJ_name, song_title, song_artist, requester_session_id]
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
+    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre]
   );
 
   // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
@@ -130,7 +131,7 @@ router.post("/songs", async (req, res) => {
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
   const result = await db.query(
-    "SELECT id, song_title, song_artist, request_date, status, dj_username FROM songrequests WHERE id = $1;",
+    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre FROM songrequests WHERE id = $1;",
     [newId]
   );
   const songRequest = result.rows[0];

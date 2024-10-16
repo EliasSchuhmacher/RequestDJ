@@ -29,11 +29,24 @@
               <li
                 v-for="(suggestion, index) in suggestions"
                 :key="index"
+                tabindex="0"
                 @click="selectSuggestion(suggestion)"
+                @keydown.enter="selectSuggestion(suggestion)"
               >
-                {{ suggestion }}
+                {{ suggestion.name + " by " + suggestion.artists.map(artist => artist.name).join(', ') }}
               </li>
             </ul>
+          </div>
+          <div class="form-floating mb-3 mt-3">
+            <input
+              id="requester_name"
+              v-model="requester_name"
+              type="text"
+              class="form-control"
+              placeholder="Enter Your Name (Optional)..."
+              name="requester_name"
+            />
+            <label for="requester_name">Enter Your Name (Optional):</label>
           </div>
           <div v-if="errorMessage" class="alert alert-danger">
             {{ errorMessage }}
@@ -101,6 +114,8 @@ export default {
   },
   data: () => ({
     song_title: "",
+    song_genre: "",
+    requester_name: "",
     // song_artist: "",
     suggestions: [], // Initialize as an empty array
     requestSent: false,
@@ -108,7 +123,8 @@ export default {
     msg: "",
     countdown: 0,
     requestAnotherSongDisabled: false,
-    timeoutLength: 3 * 60 * 1000,
+    // timeoutLength: 3 * 60 * 1000,
+    timeoutLength: 10 * 1000,
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),
@@ -180,31 +196,53 @@ export default {
     // if they choose one of the suggestions submit
     selectSuggestion(suggestion) {
       // Set the input value to the selected suggestion
-      this.song_title = suggestion;
+      this.song_title = `${suggestion.name} by ${suggestion.artists.map(artist => artist.name).join(', ')}`;
+
+      // Fetch the genre of the first artist of the selected song
+      // Potential problem: the user might send the request before the genre is finished fetching
+      const firstArtistDetailsLink = suggestion.artists[0].href;
+      fetch(firstArtistDetailsLink, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.token}`, // Use your Spotify access token
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Extract the genres of the artist, capitalize the first letter, and join them with a comma
+        this.song_genre = data.genres.map(genre => genre.charAt(0).toUpperCase() + genre.slice(1)).join(', ');
+      })
+
       // Clear suggestions after selecting one
       this.suggestions = [];
     },
 
     // get the spotify token that is needed for api calls from backend
     async fetchSpotifytoken() {
-      return await fetch(`/api/spotify/token`)
+      return fetch(`/api/spotify/token`)
         .then(response => response.json())
-        .then(data => {
-          // onsole.log(data.accessToken); // Do something with the token
-          return data.accessToken
-        })
+        .then(data => data.accessToken)
         .catch(error => {
           console.error('Failed to get Spotify Access Token:', error);
         });
     },
     
-    //api calls to spotify's server
+    // api calls to spotify's server
     async searchSpotify() {
       const query = this.song_title
-      const type = "track,artist"; // Search for both tracks and artists
-      //console.log("vi är inne i searchSpotify")
+      // const type = "track,artist"; // Search for both tracks and artists
+      const type = "track"; // Search for only tracks
+      const limit = 5; // Limit to 5 results
+
+      // console.log("vi är inne i searchSpotify")
       try {
-        const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}`, {
+        const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${this.token}`, // Use your Spotify access token
@@ -216,20 +254,23 @@ export default {
           throw new Error('Network response was not ok');
         }
 
-
         const data = await response.json();
-            // Extracting track information
+        
+        // Extracting track information
         const tracks = data.tracks.items; // Get the array of track items
+
         const extractedTracks = tracks.map(track => ({
           name: track.name, // Track name
-          artists: track.artists.map(artist => artist.name).join(', '), // Join artist names
+          // artists: track.artists.map(artist => artist.name).join(', '), // Join artist names
+          artists: track.artists
         }));
         // console.log("vi är på rad 173")
         // Get the top 5 tracks
         const topTracks = extractedTracks.slice(0, 5); // Limit to top 5 tracks
 
         // Store the track names in this.suggestions
-        this.suggestions = topTracks.map(track => `${track.name} by ${track.artists}`);
+        // this.suggestions = topTracks.map(track => `${track.name} by ${track.artists}`);
+        this.suggestions = topTracks;
       } catch (error) {
         console.error('Failed to search Spotify:', error);
         throw error; // Handle errors appropriately
@@ -246,6 +287,15 @@ export default {
       // Reset the error message
       this.errorMessage = "";
     
+      // Check if the user has made a request in the last 30 minutes
+      const lastRequestTime = localStorage.getItem("lastRequestTime");
+      const currentTime = new Date().getTime();
+      if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
+        console.log("Please wait before making another request.");
+        this.errorMessage = "You can only request a song every 3 minutes.";
+        return;
+      }
+
       this.requestAnotherSongDisabled = true;
       this.countdown = this.timeoutLength;
       // Set requestAnotherSongDisabled to false after 15 seconds
@@ -257,17 +307,10 @@ export default {
           clearInterval(interval);
         }
       }, 1000);
-      
-      // Check if the user has made a request in the last 30 minutes
-      const lastRequestTime = localStorage.getItem("lastRequestTime");
-      const currentTime = new Date().getTime();
-      if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
-        console.log("Please wait before making another request.");
-        this.errorMessage = "You can only request a song every 3 minutes.";
-        return;
-      }
 
       this.requestSent = true;
+      // Fetch the genre of the first artist of the song
+
       // Send the booking to server via AJAX-post request
       fetch(`/api/songs`, {
         method: "POST",
@@ -277,6 +320,8 @@ export default {
           song_title: this.song_title,
           song_artist: this.song_artist,
           DJ_name: this.DJ_name,
+          requester_name: this.requester_name,
+          song_genre: this.song_genre,
         }),
       })
       .then(response => {
@@ -300,6 +345,7 @@ export default {
       this.requestSent = false;
       this.song_title = "";
       this.song_artist = "";
+      this.song_genre = "";
       this.errorMessage = "";
       this.suggestions = [];
       this.$store.commit("setSongRequestResponse", "");
