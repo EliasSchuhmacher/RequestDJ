@@ -1,7 +1,7 @@
 <template>
   <div class="row mt-5">
     <div class="col"></div>
-    <div class="col-8 col-md-5 p-5 shadow bg-secondary-custom rounded">
+    <div class="col-10 col-md-5 py-5 px-3 px-md-5 shadow bg-secondary-custom rounded">
       <div class="row pb-3 mt-4">
         <div class="col d-flex justify-content-center">
           <h1>DJ Login</h1>
