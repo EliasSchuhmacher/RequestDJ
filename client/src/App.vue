@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid dvh-100 px-0 d-flex flex-column text-primary-custom">
+  <div class="container-fluid lvh-100 px-0 d-flex flex-column text-primary-custom">
     <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
       <div class="container-fluid px-3">
         <button
@@ -190,7 +190,7 @@ export default {
 html, body {
   /* https://designs.ai/colors */
   font-family: "Helvetica Neue", sans-serif;
-  background-color: #212121
+  background-color: #212121;
   /* background-image: linear-gradient(
     to right,
     rgb(242 112 156),
@@ -198,9 +198,15 @@ html, body {
   ); */
 }
 
-/* Custom class for dynamic viewport height */
-.dvh-100 {
-  height: 100dvh;
+/* Custom class for new css largest viewport height */
+.lvh-100 {
+  height: 100lvh;
+}
+
+@media (max-width: 575px) {
+  .lvh-100 {
+    height: 103lvh;
+  }
 }
 
 /* Custom color classes */
