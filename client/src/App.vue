@@ -214,7 +214,7 @@ html, body {
 }
 
 .bg-green-custom {
-  background-color: #1db954 !important;
+  background-color: #1ED760 !important;
 }
 
 .text-primary-custom {
@@ -222,7 +222,7 @@ html, body {
 }
 
 .text-secondary-custom {
-  color: #1db954 !important;
+  color: #1ED760 !important;
 }
 
 /* Autofill styles */

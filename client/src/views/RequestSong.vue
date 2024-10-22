@@ -25,7 +25,7 @@
               @input="debouncedSearch"
             />
             <label for="song_title">Enter Song Title or/and Artist:</label>
-            <ul v-if="suggestions.length" class="suggestions-list bg-primary-custom">
+            <ul v-if="suggestions.length" class="suggestions-list pb-2 rounded-bottom bg-primary-custom">
               <li
                 v-for="(suggestion, index) in suggestions"
                 :key="index"
