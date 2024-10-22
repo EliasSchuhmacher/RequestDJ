@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid vh-100 px-0 d-flex flex-column text-primary-custom">
+  <div class="container-fluid dvh-100 px-0 d-flex flex-column text-primary-custom">
     <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
       <div class="container-fluid px-3">
         <button
@@ -151,7 +151,7 @@ export default {
       // }
       const data = encodeURIComponent(`${qrcodeURL}${this.$store.state.username}`);  
       const size = 300;
-      const windowSize = 400;
+      const windowSize = 350;
       // const config = encodeURIComponent(JSON.stringify({}));
       // const file = "png";
       // const download = false;
@@ -189,7 +189,6 @@ export default {
 
 html, body {
   /* https://designs.ai/colors */
-
   font-family: "Helvetica Neue", sans-serif;
   background-color: #212121
   /* background-image: linear-gradient(
@@ -197,7 +196,11 @@ html, body {
     rgb(242 112 156),
     rgb(255 148 114)
   ); */
+}
 
+/* Custom class for dynamic viewport height */
+.dvh-100 {
+  height: 100dvh;
 }
 
 /* Custom color classes */
