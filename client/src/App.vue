@@ -1,7 +1,7 @@
 <template>
-  <div class="container-fluid vh-100 d-flex flex-column">
+  <div class="container-fluid vh-100 px-0 d-flex flex-column text-primary-custom">
     <nav v-if="showNavbar" class="navbar navbar-expand-sm navbar-dark">
-      <div class="container-fluid px-0">
+      <div class="container-fluid px-3">
         <button
           class="navbar-toggler"
           type="button"
@@ -41,7 +41,7 @@
         </div>
       </div>
     </nav>
-    <section class="flex-grow-1 overflow-hidden">
+    <section class="flex-grow-1 overflow-hidden bg-primary-custom px-3">
       <router-view />
     </section>
   </div>
@@ -190,12 +190,47 @@ export default {
 html, body {
   /* https://designs.ai/colors */
 
-  /* background-color: #c4ffff; */
-  background-image: linear-gradient(
+  font-family: "Helvetica Neue", sans-serif;
+  background-color: #212121
+  /* background-image: linear-gradient(
     to right,
     rgb(242 112 156),
     rgb(255 148 114)
-  );
+  ); */
 
+}
+
+/* Custom color classes */
+.bg-primary-custom {
+  background-color: #212121 !important;
+}
+
+.bg-secondary-custom {
+  background-color: #121212 !important;
+}
+
+.bg-tertiary-custom {
+  background-color: #535353 !important;
+}
+
+.bg-green-custom {
+  background-color: #1ED760 !important;
+}
+
+.text-primary-custom {
+  color: #FFFFFF !important;
+}
+
+.text-secondary-custom {
+  color: #1ED760 !important;
+}
+
+/* Autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #212121 inset !important; /* Match the background color */
+  -webkit-text-fill-color: #f8f9fa !important; /* Match the text color */
 }
 </style>
