@@ -3,24 +3,24 @@
   <div class="col-sm-6 d-flex flex-column custom-height pb-2 pb-sm-0">
     <h3 class="px-sm-5"> Incoming Requests </h3>
     <div class="overflow-auto px-sm-5 h-100">
-      <p 
+      <transition-group name="slam" tag="div">
+        <SongRequestCard
+        v-for="songRequest in incomingSongRequests"
+        :key="songRequest.id"
+        :song-request="songRequest"
+        :status="songRequest.status"
+        :incoming="true"
+        @set-playing="setPlaying"
+        @submit-remove="submitRemove"
+        @submit-comingup="submitComingUp"
+        />
+      </transition-group>
+      <p
         v-if="incomingSongRequests.length === 0"
         class="lead fst-italic mt-3"
       >
         Waiting for requests, scan the QR code to send a song request...
       </p>
-      <transition-group name="slam" tag="div">
-        <SongRequestCard
-          v-for="songRequest in incomingSongRequests"
-          :key="songRequest.id"
-          :song-request="songRequest"
-          :status="songRequest.status"
-          :incoming="true"
-          @set-playing="setPlaying"
-          @submit-remove="submitRemove"
-          @submit-comingup="submitComingUp"
-        />
-      </transition-group>
       <div class="py-4"></div>
     </div>
   </div>

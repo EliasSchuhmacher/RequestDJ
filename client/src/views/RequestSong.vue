@@ -115,6 +115,7 @@ export default {
   data: () => ({
     song_title: "",
     song_genre: "",
+    song_spotify_id: "",
     requester_name: "",
     // song_artist: "",
     suggestions: [], // Initialize as an empty array
@@ -197,6 +198,7 @@ export default {
     selectSuggestion(suggestion) {
       // Set the input value to the selected suggestion
       this.song_title = `${suggestion.name} by ${suggestion.artists.map(artist => artist.name).join(', ')}`;
+      this.song_spotify_id = suggestion.spotify_id;
 
       // Fetch the genre of the first artist of the selected song
       // Potential problem: the user might send the request before the genre is finished fetching
@@ -262,7 +264,8 @@ export default {
         const extractedTracks = tracks.map(track => ({
           name: track.name, // Track name
           // artists: track.artists.map(artist => artist.name).join(', '), // Join artist names
-          artists: track.artists
+          artists: track.artists,
+          spotify_id: track.id, // Spotify ID
         }));
         // console.log("vi är på rad 173")
         // Get the top 5 tracks
@@ -278,12 +281,13 @@ export default {
     },
 
     sendRequest() {
+      // Check that a title is supplied.
       if (this.song_title === "" && this.song_artist === "") {
-        // Don't let users book with an invalid username.
         console.log("Both fields are empty");
         this.errorMessage = "Please fill in at least one of the fields";
         return;
       }
+
       // Reset the error message
       this.errorMessage = "";
     
@@ -292,13 +296,13 @@ export default {
       const currentTime = new Date().getTime();
       if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
         console.log("Please wait before making another request.");
-        this.errorMessage = "You can only request a song every 3 minutes.";
+        this.errorMessage = "Please wait before making another request.";
         return;
       }
 
+      // Disable the request button and start the countdown
       this.requestAnotherSongDisabled = true;
       this.countdown = this.timeoutLength;
-      // Set requestAnotherSongDisabled to false after 15 seconds
       const interval = setInterval(() => {
         if (this.countdown > 0) {
           this.countdown -= 1000;
@@ -309,7 +313,6 @@ export default {
       }, 1000);
 
       this.requestSent = true;
-      // Fetch the genre of the first artist of the song
 
       // Send the booking to server via AJAX-post request
       fetch(`/api/songs`, {
@@ -319,6 +322,7 @@ export default {
         body: JSON.stringify({
           song_title: this.song_title,
           song_artist: this.song_artist,
+          song_spotify_id: this.song_spotify_id,
           DJ_name: this.DJ_name,
           requester_name: this.requester_name,
           song_genre: this.song_genre,
@@ -346,6 +350,7 @@ export default {
       this.song_title = "";
       this.song_artist = "";
       this.song_genre = "";
+      this.song_spotify_id = "";
       this.errorMessage = "";
       this.suggestions = [];
       this.$store.commit("setSongRequestResponse", "");
