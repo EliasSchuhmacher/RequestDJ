@@ -1,3 +1,4 @@
+<!-- eslint-disable camelcase -->
 <template>
   <div
     :class="['card my-2 shadow rounded bg-tertiary-custom', 
@@ -6,7 +7,20 @@
     <div class="px-3 mt-2 d-flex justify-content-between align-items-center">
       <div v-if="songRequest.song_title" class="d-flex align-items-center w-100">
         <i class="fas text-dark fa-music me-3"></i>
-        <span class="overflow-hidden small"><strong>{{ songRequest.song_title }}</strong></span>
+        <span
+          v-if="songRequest.song_spotify_id"
+          class="overflow-hidden small"
+          :class="{ clickable: songRequest.song_spotify_id }"
+          data-bs-toggle="tooltip"
+          title="Click to open in Spotify"
+          @click="openSpotifyLink(songRequest.song_spotify_id)" 
+          @keydown.enter="openSpotifyLink(songRequest.song_spotify_id)"
+        >
+          <strong>{{ songRequest.song_title }}</strong>
+        </span>
+        <span v-else class="overflow-hidden small">
+          <strong>{{ songRequest.song_title }}</strong>
+        </span>
         <span v-if="songRequest.song_artist"> by {{ songRequest.song_artist }} </span>
       </div>
       <div v-else>
@@ -57,6 +71,8 @@
 </template>
   
 <script>
+import { Tooltip } from 'bootstrap';
+
   export default {
     props: {
       songRequest: {
@@ -72,11 +88,48 @@
         required: true
       }
     },
-    emits: ['submit-comingup', 'set-playing', 'submit-remove']
+    emits: ['submit-comingup', 'set-playing', 'submit-remove'],
+    mounted() {
+      // Initialize Bootstrap tooltips
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach((tooltipTriggerEl) => {
+        // eslint-disable-next-line no-new
+        new Tooltip(tooltipTriggerEl);
+      });
+    },
+    beforeUnmount() {
+      // Hide tooltips before the component is destroyed
+      this.disposeTooltips();
+    },
+    methods: {
+      openSpotifyLink(song_spotify_id) {
+        // window.open(`https://open.spotify.com/track/${song_spotify_id}`, '_blank');
+        window.open(`spotify:track:${song_spotify_id}`, '_blank');
+      },
+      disposeTooltips() {
+        console.log('disposing tooltips');
+        // Hide tooltips when the status changes or the component is destroyed
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach((tooltipTriggerEl) => {
+          const tooltip = Tooltip.getInstance(tooltipTriggerEl);
+          if (tooltip) {
+            tooltip.hide();
+          }
+        });
+        // Also remove the tooltips from the DOM
+        const tooltipList = [].slice.call(document.querySelectorAll('.tooltip'));
+        tooltipList.forEach((tooltipEl) => {
+          tooltipEl.remove();
+        });
+      }
+  }
   }
 </script>
-  
 <style scoped>
+.clickable {
+  cursor: pointer;
+}
+
 .shimmer {
   animation: shimmer 1.5s infinite;
   background: linear-gradient(to right, #535353 8%, #6b6b6b 18%, #535353 33%);
