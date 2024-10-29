@@ -6,6 +6,7 @@ export default createStore({
     username: "",
     timeslots: [],
     songRequests: [],
+    spotifyQueue: [],
     selectedBookingTimeslot: "",
     songRequestResponse: "",
     //spotifyAccessToken: null,
@@ -40,6 +41,10 @@ export default createStore({
     },
     setSongRequests(state, songRequests) {
       state.songRequests = songRequests;
+    },
+    setSpotifyQueue(state, spotifyQueue) {
+      console.log("Setting spotify queue in store to: ", spotifyQueue);
+      state.spotifyQueue = spotifyQueue;
     },
     setSelectedBookingTimeslot(state, timeslot) {
       state.selectedBookingTimeslot = timeslot;

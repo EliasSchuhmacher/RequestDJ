@@ -25,8 +25,20 @@
     </div>
   </div>
   <div class="col-sm-6 d-flex flex-column custom-height">
-    <h3 class="px-sm-5"> Accepted Requests </h3>
-    <div class="overflow-auto px-sm-5 h-100">
+    <h3 class="px-sm-5"> Song Queue </h3>
+    <button type="button" class="btn btn-success mx-5" @click="connectToSpotify">Connect to Spotify</button>
+    <button type="button" class="btn btn-success mt-1 mx-5" @click="getSpotifyQueue">Check my Spotify Queue</button>
+    <SongRequestCard
+      v-for="song in $store.state.spotifyQueue"
+      :key="song.id"
+      :song-request="song"
+      :status="coming_up"
+      :incoming="false"
+      @set-playing="prevent"
+      @submit-remove="prevent"
+      @submit-comingup="prevent"
+    />
+    <!-- <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
         <SongRequestCard
           v-for="songRequest in acceptedSongRequests"
@@ -40,7 +52,7 @@
         />
       </transition-group>
       <div class="py-4"></div>
-    </div>
+    </div> -->
   </div>
 </div>
 </template>
@@ -82,13 +94,36 @@ export default {
     const res = await fetch(`/api/songs/${this.$store.state.username}`);
     const { songRequests } = await res.json();
 
+
     // Update the store with the fetched songRequests
     commit("setSongRequests", songRequests);
     commit("sortSongRequests");
   },
   methods: {
+    prevent() {
+      // Do nothing
+    },
     redirect(name) {
       this.$router.push(`/rooms/${name}`);
+    },
+    connectToSpotify() {
+      // Redirect to the Spotify login page
+      window.location.href = "/api/spotifylogin";
+    },
+    getSpotifyQueue() {
+      fetch(`/api/spotifyqueue/${this.$store.state.username}`, {
+        method: "GET",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Spotify Queue: ", data);
+          // Commit to store
+          const queue = data.spotifyQueue.queue?.map((song) => ({
+            song_title: song.name,
+            song_spotify_id: song.id,
+          }));
+          this.$store.commit("setSpotifyQueue", queue);
+        });
     },
     submitTime() {
       fetch("/api/newtime", {
