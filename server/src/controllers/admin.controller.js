@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { json, Router } from "express";
 import Model from "../model.js";
 import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
@@ -36,10 +36,10 @@ router.get("/checkspotifyconnected", async (req, res) => {
 
   if (spotifyAccessToken) {
     // User has connected to spotify
-    res.status(200).send();
+    res.status(200).json({ connected: true });
   } else {
     // User has not connected to spotify
-    res.status(401).send();
+    res.status(200).json({ connected: false });
   }
 });
 
@@ -107,7 +107,7 @@ router.get("/spotifyqueue/:username", async (req, res) => {
   });
 
   const spotifyQueue = await response.json();
-  
+
 
 
   res.status(200).json({ spotifyQueue });
@@ -261,7 +261,7 @@ router.post("/playsong", async (req, res) => {
   });
 });
 
-// Mark a song as "coming up":
+// Mark a song as "coming up": (This is now used to queue a song in Spotify)
 router.post("/comingup", async (req, res) => {
   const { id } = req.body;
   console.log("Coming up called for id:", id);
@@ -285,6 +285,45 @@ router.post("/comingup", async (req, res) => {
     // Försöker markera någon annans song!
     res.status(401).send();
     return;
+  }
+
+  // Queue the song in Spotify using a POST request to /me/player/queue
+  // Get the users spotify access token
+  const res2 = await db.query(
+    "SELECT spotify_access_token FROM users WHERE name=$1",
+    [req.session.user]
+  );
+  const spotifyAccessToken = res2.rows[0]?.spotify_access_token;
+
+  if (!spotifyAccessToken) {
+    // User has not connected to spotify
+    res.status(401).send();
+    return;
+  }
+
+  // Queue the song in Spotify
+  try {
+    const uri = `spotify:track:${song.song_spotify_id}`;
+    const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${spotifyAccessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Failed to queue song in Spotify:', errorData);
+      res.status(response.status).json({ error: 'Failed to queue song in Spotify', details: errorData });
+      return;
+    }
+
+    console.log('Song queued successfully in Spotify');
+  } catch (error) {
+    console.error('Error occurred while queuing song in Spotify:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 
   // Update the song request status to "coming_up":

@@ -125,6 +125,9 @@ export default {
         .then(() => {
           commit("setAuthenticated", false);
           commit("setUsername", "");
+          commit("setSongRequests", []);
+          commit("setSpotifyQueue", []);
+          commit("setSpotifyConnected", false);
           push("/login");
         })
         .catch(console.error);

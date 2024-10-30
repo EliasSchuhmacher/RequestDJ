@@ -25,19 +25,27 @@
     </div>
   </div>
   <div class="col-sm-6 d-flex flex-column custom-height">
-    <h3 class="px-sm-5"> Song Queue </h3>
-    <button type="button" class="btn btn-success mx-5" @click="connectToSpotify">Connect to Spotify</button>
-    <button type="button" class="btn btn-success mt-1 mx-5" @click="getSpotifyQueue">Check my Spotify Queue</button>
-    <SongRequestCard
-      v-for="song in $store.state.spotifyQueue"
-      :key="song.id"
-      :song-request="song"
-      :status="coming_up"
-      :incoming="false"
-      @set-playing="prevent"
-      @submit-remove="prevent"
-      @submit-comingup="prevent"
-    />
+    <div class="d-flex align-items-center px-sm-5">
+      <h3>Song Queue</h3>
+      <button type="button" class="btn p-0 ms-3 text-secondary" @click="getSpotifyQueue">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    <div class="overflow-auto px-sm-5 h-100">
+      <transition-group name="slam" tag="div">
+        <SongRequestCard
+        v-for="song in $store.state.spotifyQueue"
+        :key="song.id"
+        :song-request="song"
+        :status="coming_up"
+        :incoming="false"
+        @set-playing="prevent"
+        @submit-remove="prevent"
+        @submit-comingup="prevent"
+        />
+      </transition-group>
+      <button type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Connect to Spotify</button>
+    </div>
     <!-- <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
         <SongRequestCard
@@ -94,10 +102,19 @@ export default {
     const res = await fetch(`/api/songs/${this.$store.state.username}`);
     const { songRequests } = await res.json();
 
-
     // Update the store with the fetched songRequests
     commit("setSongRequests", songRequests);
     commit("sortSongRequests");
+
+    // Check if the user has connected to Spotify
+    const spotifyRes = await fetch(`/api/checkspotifyconnected`);
+    const { connected } = await spotifyRes.json();
+    if (connected) {
+      this.getSpotifyQueue();
+      // Commit to store
+      commit("setSpotifyConnected", true);
+    }
+
   },
   methods: {
     prevent() {
@@ -120,6 +137,7 @@ export default {
           // Commit to store
           const queue = data.spotifyQueue.queue?.map((song) => ({
             song_title: song.name,
+            song_artist: song.artists.map((artist) => artist.name).join(", "),
             song_spotify_id: song.id,
           }));
           this.$store.commit("setSpotifyQueue", queue);
@@ -168,7 +186,10 @@ export default {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
-      }).catch(console.error);
+      }).then(
+        // fetch the new spotify queue, after a short delay
+        setTimeout(() => this.getSpotifyQueue(), 250)
+      ).catch(console.error);
     },
     submitPlaying(id) {
       // Remove the song request from the store
