@@ -127,6 +127,7 @@ export default {
           commit("setUsername", "");
           commit("setSongRequests", []);
           commit("setSpotifyQueue", []);
+          commit("setCurrentlyPlaying", {});
           commit("setSpotifyConnected", false);
           push("/login");
         })

@@ -33,11 +33,23 @@
     </div>
     <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
+        <span v-if="$store.state.currentlyPlaying" class="d-block mt-1 text-muted small">Currently Playing:</span>
+        <SongRequestCard
+        v-if="$store.state.currentlyPlaying"
+        :key="$store.state.currentlyPlaying.id"
+        :song-request="$store.state.currentlyPlaying"
+        :status="'coming_up'"
+        :incoming="false"
+        @set-playing="prevent"
+        @submit-remove="prevent"
+        @submit-comingup="prevent"
+        />
+        <span v-if="$store.state.spotifyQueue.length > 0" class="d-block mt-2 text-muted small">Coming Up:</span>
         <SongRequestCard
         v-for="song in $store.state.spotifyQueue"
         :key="song.id"
         :song-request="song"
-        :status="coming_up"
+        :status="'queued'"
         :incoming="false"
         @set-playing="prevent"
         @submit-remove="prevent"
@@ -75,6 +87,8 @@ export default {
   },
   data: () => ({
     newtime: "10:00",
+    intervalId: null,
+    spotifyQueueRefreshInterval: 1000 * 15, // 15 seconds
     // TODO: save id of last song request
   }),
   computed: {
@@ -113,8 +127,12 @@ export default {
       this.getSpotifyQueue();
       // Commit to store
       commit("setSpotifyConnected", true);
+      this.startPolling();
     }
 
+  },
+  beforeUnmount() {
+    this.stopPolling();
   },
   methods: {
     prevent() {
@@ -141,17 +159,23 @@ export default {
             song_spotify_id: song.id,
           }));
           this.$store.commit("setSpotifyQueue", queue);
+          const { name, id, artists } = data.spotifyQueue.currently_playing;
+          this.$store.commit("setCurrentlyPlaying", {
+            song_title: name,
+            song_artist: artists.map((artist) => artist.name).join(", "),
+            song_spotify_id: id,
+          });
         });
     },
-    submitTime() {
-      fetch("/api/newtime", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          time: this.newtime,
-          username: this.$store.state.username,
-        }),
-      }).catch(console.error);
+    startPolling() {
+      this.getSpotifyQueue(); // Initial fetch
+      this.intervalId = setInterval(this.getSpotifyQueue, this.spotifyQueueRefreshInterval); // Fetch every 15 seconds
+    },
+    stopPolling() {
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
     },
     submitRemove(id) {
       // Remove the song request from the store

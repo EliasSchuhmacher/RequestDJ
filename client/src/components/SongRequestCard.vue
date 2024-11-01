@@ -48,7 +48,7 @@
         @click="$emit('submit-comingup', songRequest.id)"
       >
         <i class="fas mt-1 fa-check"></i>
-        <span class="px-0 small mt-auto">Accept</span>
+        <span class="px-0 small mt-auto">Accept & Queue</span>
       </button>
       <button
         type="button"

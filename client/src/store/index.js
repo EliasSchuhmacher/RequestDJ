@@ -7,6 +7,7 @@ export default createStore({
     timeslots: [],
     songRequests: [],
     spotifyQueue: [],
+    currentlyPlaying: undefined,
     spotifyConnected: false,
     selectedBookingTimeslot: "",
     songRequestResponse: "",
@@ -46,6 +47,9 @@ export default createStore({
     setSpotifyQueue(state, spotifyQueue) {
       console.log("Setting spotify queue in store to: ", spotifyQueue);
       state.spotifyQueue = spotifyQueue;
+    },
+    setCurrentlyPlaying(state, song) {
+      state.currentlyPlaying = song;
     },
     addSpotifyQueue(state, song) {
       state.spotifyQueue.push(song);
