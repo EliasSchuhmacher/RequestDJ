@@ -56,7 +56,11 @@
         @submit-comingup="prevent"
         />
       </transition-group>
-      <button type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Connect to Spotify</button>
+      <p v-if="$store.state.spotifyConnected" class="text-muted text-small mb-0">
+        Connected to spotify
+      </p>
+      <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Connect to Spotify</button>
+      <button v-else type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Refresh Spotify Connection</button>
     </div>
     <!-- <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">

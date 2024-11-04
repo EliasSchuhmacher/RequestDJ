@@ -2,6 +2,8 @@
 import { Router } from "express";
 import Model from "../model.js";
 import db from "../dbPG.js";
+import sessionStore from '../sessionStore.js'; // Import the session store
+
 
 const router = Router();
 
@@ -58,12 +60,12 @@ router.get("/timeslots", async (req, res) => {
 });
 
 router.get("/spotify/token", async (req, res) => {
-  //console.log("we are in the spotify/token function")
+  // console.log("we are in the spotify/token function")
   try {
     // Fetch a new token
     const spotifyAccessToken = await getSpotifyAccessToken();
-    //console.log(spotifyAccessToken)
-    //console.log("hej")
+    // console.log(spotifyAccessToken)
+    // console.log("hej")
     // Return the token to the client
     res.status(200).json({ accessToken: spotifyAccessToken });
   } catch (error) {
@@ -83,7 +85,7 @@ router.post("/check_dj_exist", async (req, res) => {
   
   console.log(existingUser)
   console.log("vi är i check_dj_exist, efter existingUser")
-  //const allDJs = await db.all("SELECT name FROM assistants");  
+  // const allDJs = await db.all("SELECT name FROM assistants");  
   // Log all DJs to the console for debugging
   
   if (existingUser) {
@@ -143,6 +145,71 @@ router.post("/songs", async (req, res) => {
 
 });
 
+// Helper function to get the session for a user
+// Helper function to get the session for a user
+async function getSessionForUser(username) {
+  return new Promise((resolve, reject) => {
+    sessionStore.db.all('SELECT * FROM sessions', (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      const userSession = rows.find(row => {
+        const sessionData = JSON.parse(row.sess);
+        return sessionData.user === username;
+      });
+      resolve(userSession);
+    });
+  });
+}
+
+// Create an endpoint for retrieving a users spotify queue
+router.get("/spotifyqueue/:username", async (req, res) => {
+  const { username } = req.params;
+
+  if (!username) {
+    // Request missing properties, don't let it crash the server
+    res.send(400).send();
+    return;
+  }
+
+  // if (username !== req.session.user) {
+  //   // Trying to access another users spotify queue, security issue?
+  //   res.status(401).send();
+  //   return;
+  // }
+  // Check if the target user is logged in
+  const session = await getSessionForUser(username);
+  if (!session) {
+    res.status(401).send('Unauthorized: Target user is not logged in');
+    return;
+  }
+
+  // Retrieve the users spotify access token
+  const result = await db.query(
+    "SELECT spotify_access_token FROM users WHERE name=$1",
+    [username]
+  );
+  const spotifyAccessToken = result.rows[0]?.spotify_access_token;
+
+  if (!spotifyAccessToken) {
+    // User has not connected to spotify
+    res.status(401).send();
+    return;
+  }
+
+  // Retrieve the users spotify queue from /me/player/queue
+  const response = await fetch('https://api.spotify.com/v1/me/player/queue', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${spotifyAccessToken}`
+    }
+  });
+
+  const spotifyQueue = await response.json();
+
+  res.status(200).json({ spotifyQueue });
+});
 
 
 export default { router };

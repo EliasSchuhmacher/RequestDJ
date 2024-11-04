@@ -69,50 +69,6 @@ router.get("/songs/:username", async (req, res) => {
   res.status(200).json({ songRequests });
 });
 
-// Create an endpoint for retrieving a users spotify queue
-router.get("/spotifyqueue/:username", async (req, res) => {
-  const { username } = req.params;
-
-  if (!username) {
-    // Request missing properties, don't let it crash the server
-    res.send(400).send();
-    return;
-  }
-
-  if (username !== req.session.user) {
-    // Trying to access another users spotify queue, security issue?
-    res.status(401).send();
-    return;
-  }
-
-  // Retrieve the users spotify access token
-  const result = await db.query(
-    "SELECT spotify_access_token FROM users WHERE name=$1",
-    [username]
-  );
-  const spotifyAccessToken = result.rows[0]?.spotify_access_token;
-
-  if (!spotifyAccessToken) {
-    // User has not connected to spotify
-    res.status(401).send();
-    return;
-  }
-
-  // Retrieve the users spotify queue from /me/player/queue
-  const response = await fetch('https://api.spotify.com/v1/me/player/queue', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${spotifyAccessToken}`
-    }
-  });
-
-  const spotifyQueue = await response.json();
-
-
-
-  res.status(200).json({ spotifyQueue });
-});
-
 // Connect to spotify:
 router.get("/spotifylogin", async (req, res) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
