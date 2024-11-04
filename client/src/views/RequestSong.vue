@@ -1,8 +1,8 @@
 <!-- eslint-disable vue/prop-name-casing -->
 <template>
-  <div class="row">
+  <div class="row h-100">
     <div class="col"></div>
-    <div class="col-sm-6">
+    <div class="col-sm-6 h-100">
       <div class="card shadow-lg mt-5 bg-secondary-custom text-light">
         <div 
           v-if="!requestSent"
@@ -86,6 +86,26 @@
           </button>
         </div>
       </div>
+      <div class="row h-100">
+        <div class="col overflow-auto h-100">
+          <span v-if="currentlyPlaying" class="d-block mt-1 text-muted small">Currently Playing:</span>
+          <SongRequestCard
+          v-if="currentlyPlaying"
+          :key="currentlyPlaying.id"
+          :song-request="currentlyPlaying"
+          :status="'coming_up'"
+          :incoming="false"
+          />
+          <span v-if="spotifyQueue.length > 0" class="d-block mt-2 text-muted small">Coming Up:</span>
+          <SongRequestCard
+          v-for="song in spotifyQueue"
+          :key="song.id"
+          :song-request="song"
+          :status="'queued'"
+          :incoming="false"
+          />
+        </div>
+      </div>
       <p v-if="requestSent" class="text-center mt-3">
         <a href="https://forms.gle/guNj45pjAkyZN2Ju5" class="text-light">Lämna gärna feedback!</a>
       </p>
@@ -102,9 +122,14 @@
 </template>
 
 <script>
+import { error } from "console";
+import SongRequestCard from "../components/SongRequestCard.vue";
+
 export default {
   name: "RequestSongView",
-  components: {},
+  components: {
+    SongRequestCard,
+  },
   props: {
     // eslint-disable-next-line vue/prop-name-casing
     DJ_name: {
@@ -119,6 +144,8 @@ export default {
     requester_name: "",
     // song_artist: "",
     suggestions: [], // Initialize as an empty array
+    spotifyQueue: [],
+    currentlyPlaying: {},
     requestSent: false,
     errorMessage: "",
     msg: "",
@@ -134,9 +161,21 @@ export default {
       const minutes = Math.floor(this.countdown / 60000);
       const seconds = Math.floor((this.countdown % 60000) / 1000);
       return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    },
+    songRequestResponse() {
+      return this.$store.state.songRequestResponse;
     }
   },
-  
+  watch: {
+    songRequestResponse(newStatus) {
+      if (newStatus === 'coming_up') {
+        // fetch the updated queue after a short delay
+        setTimeout(() => {
+          this.fetchSpotifyQueue();
+        }, 500);
+      }
+    }
+  },
   created() {
     // Initialize the debounced function with a delay of 300ms
     this.debouncedSearch = this.debounce(this.searchSpotify, 300);
@@ -172,6 +211,7 @@ export default {
     } catch (error) {
       console.error("Error fetching token on mount:", error);
     }
+    this.fetchSpotifyQueue();
   },
 
 
@@ -184,8 +224,8 @@ export default {
       }
     },
   
-  // we only want to send spotify request after 300 ms after typing  
-  debounce(func, delay) {
+    // we only want to send spotify request after 300 ms after typing  
+    debounce(func, delay) {
       let timeout;
       return function(...args) {
         const context = this;
@@ -280,6 +320,38 @@ export default {
       }
     },
 
+    fetchSpotifyQueue() {
+      fetch(`/api/spotifyqueue/${this.DJ_name}`, {
+        method: "GET",
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Error fetching song queue, owner not logged in`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Spotify Queue: ", data);
+          // Commit to store
+          const queue = data.spotifyQueue.queue?.map((song) => ({
+            song_title: song.name,
+            song_artist: song.artists.map((artist) => artist.name).join(", "),
+            song_spotify_id: song.id,
+          }));
+          this.spotifyQueue = queue;
+          const { name, id, artists } = data.spotifyQueue.currently_playing;
+          this.currentlyPlaying = {
+            song_title: name,
+            song_artist: artists.map((artist) => artist.name).join(", "),
+            song_spotify_id: id,
+          };
+        })
+        .catch((err) => {
+          console.error("Failed to fetch Spotify queue:", err);
+          // this.errorMessage = err.message || "An error occurred";
+        });
+    },
+
     sendRequest() {
       // Check that a title is supplied.
       if (this.song_title === "" && this.song_artist === "") {
@@ -354,6 +426,7 @@ export default {
       this.errorMessage = "";
       this.suggestions = [];
       this.$store.commit("setSongRequestResponse", "");
+      this.fetchSpotifyQueue();
     },
   },
 };

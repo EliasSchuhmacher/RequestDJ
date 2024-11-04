@@ -25,8 +25,44 @@
     </div>
   </div>
   <div class="col-sm-6 d-flex flex-column custom-height">
-    <h3 class="px-sm-5"> Accepted Requests </h3>
+    <div class="d-flex align-items-center px-sm-5">
+      <h3>Song Queue</h3>
+      <button type="button" class="btn p-0 ms-3 text-secondary" @click="getSpotifyQueue">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
     <div class="overflow-auto px-sm-5 h-100">
+      <transition-group name="slam" tag="div">
+        <span v-if="$store.state.currentlyPlaying" class="d-block mt-1 text-muted small">Currently Playing:</span>
+        <SongRequestCard
+        v-if="$store.state.currentlyPlaying"
+        :key="$store.state.currentlyPlaying.id"
+        :song-request="$store.state.currentlyPlaying"
+        :status="'coming_up'"
+        :incoming="false"
+        @set-playing="prevent"
+        @submit-remove="prevent"
+        @submit-comingup="prevent"
+        />
+        <span v-if="$store.state.spotifyQueue.length > 0" class="d-block mt-2 text-muted small">Coming Up:</span>
+        <SongRequestCard
+        v-for="song in $store.state.spotifyQueue"
+        :key="song.id"
+        :song-request="song"
+        :status="'queued'"
+        :incoming="false"
+        @set-playing="prevent"
+        @submit-remove="prevent"
+        @submit-comingup="prevent"
+        />
+      </transition-group>
+      <p v-if="$store.state.spotifyConnected" class="text-muted text-small mb-0">
+        Connected to spotify
+      </p>
+      <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Connect to Spotify</button>
+      <button v-else type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Refresh Spotify Connection</button>
+    </div>
+    <!-- <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
         <SongRequestCard
           v-for="songRequest in acceptedSongRequests"
@@ -40,7 +76,7 @@
         />
       </transition-group>
       <div class="py-4"></div>
-    </div>
+    </div> -->
   </div>
 </div>
 </template>
@@ -55,6 +91,8 @@ export default {
   },
   data: () => ({
     newtime: "10:00",
+    intervalId: null,
+    spotifyQueueRefreshInterval: 1000 * 15, // 15 seconds
     // TODO: save id of last song request
   }),
   computed: {
@@ -85,20 +123,63 @@ export default {
     // Update the store with the fetched songRequests
     commit("setSongRequests", songRequests);
     commit("sortSongRequests");
+
+    // Check if the user has connected to Spotify
+    const spotifyRes = await fetch(`/api/checkspotifyconnected`);
+    const { connected } = await spotifyRes.json();
+    if (connected) {
+      this.getSpotifyQueue();
+      // Commit to store
+      commit("setSpotifyConnected", true);
+      this.startPolling();
+    }
+
+  },
+  beforeUnmount() {
+    this.stopPolling();
   },
   methods: {
+    prevent() {
+      // Do nothing
+    },
     redirect(name) {
       this.$router.push(`/rooms/${name}`);
     },
-    submitTime() {
-      fetch("/api/newtime", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          time: this.newtime,
-          username: this.$store.state.username,
-        }),
-      }).catch(console.error);
+    connectToSpotify() {
+      // Redirect to the Spotify login page
+      window.location.href = "/api/spotifylogin";
+    },
+    getSpotifyQueue() {
+      fetch(`/api/spotifyqueue/${this.$store.state.username}`, {
+        method: "GET",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Spotify Queue: ", data);
+          // Commit to store
+          const queue = data.spotifyQueue.queue?.map((song) => ({
+            song_title: song.name,
+            song_artist: song.artists.map((artist) => artist.name).join(", "),
+            song_spotify_id: song.id,
+          }));
+          this.$store.commit("setSpotifyQueue", queue);
+          const { name, id, artists } = data.spotifyQueue.currently_playing;
+          this.$store.commit("setCurrentlyPlaying", {
+            song_title: name,
+            song_artist: artists.map((artist) => artist.name).join(", "),
+            song_spotify_id: id,
+          });
+        });
+    },
+    startPolling() {
+      this.getSpotifyQueue(); // Initial fetch
+      this.intervalId = setInterval(this.getSpotifyQueue, this.spotifyQueueRefreshInterval); // Fetch every 15 seconds
+    },
+    stopPolling() {
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
     },
     submitRemove(id) {
       // Remove the song request from the store
@@ -133,7 +214,10 @@ export default {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
-      }).catch(console.error);
+      }).then(
+        // fetch the new spotify queue, after a short delay
+        setTimeout(() => this.getSpotifyQueue(), 250)
+      ).catch(console.error);
     },
     submitPlaying(id) {
       // Remove the song request from the store

@@ -1,7 +1,8 @@
-import { Router } from "express";
+import { json, Router } from "express";
 import Model from "../model.js";
 import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -21,6 +22,25 @@ router.post("/logout", async (req, res) => {
   req.session.authenticated = false;
   req.session.user = "";
   res.status(200).send();
+});
+
+// Create an endpoint that checks if the user has connected to spotify
+router.get("/checkspotifyconnected", async (req, res) => {
+  const username = req.session.user;
+
+  const result = await db.query(
+    "SELECT spotify_access_token FROM users WHERE name=$1",
+    [username]
+  );
+  const spotifyAccessToken = result.rows[0]?.spotify_access_token;
+
+  if (spotifyAccessToken) {
+    // User has connected to spotify
+    res.status(200).json({ connected: true });
+  } else {
+    // User has not connected to spotify
+    res.status(200).json({ connected: false });
+  }
 });
 
 // Create an endpoint for retrieving song requests for a specific user
@@ -47,6 +67,100 @@ router.get("/songs/:username", async (req, res) => {
   const songRequests = result.rows;
 
   res.status(200).json({ songRequests });
+});
+
+// Connect to spotify:
+router.get("/spotifylogin", async (req, res) => {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+  const state = uuidv4();
+  const scope = 'user-read-private user-read-email user-read-currently-playing user-read-playback-state user-modify-playback-state';
+
+  // Save the state in the session
+  req.session.spotifyState = state;
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: clientId,
+    scope,
+    redirect_uri: redirectUri,
+    state
+  });
+
+  console.log("Spotify login called, redirecting to Spotify with params:", params.toString());
+  res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
+});
+
+// Callback from spotify:
+router.get("/spotifycallback", async (req, res) => {
+  const { code, state, error } = req.query;
+  console.log("Spotify callback called with code:", code, "and state:", state);
+
+  if (error) {
+    // Spotify returned an error, send response code 400;
+    console.log("Spotify returned an error:", error);
+    res.redirect('/admin?error=spotifyautherror');
+    return;
+  }
+
+  if (!code || !state) {
+    // Invalid request, send response code 400;
+    console.log("Invalid callback request, missing code or state");
+    res.redirect('/admin?error=spotifyautherror');
+    return;
+  }
+
+  // Check that the state matches the one sent in the initial request
+  if (state !== req.session.spotifyState) {
+    // Invalid state, send response code 401;
+    console.log("Invalid state in callback request");
+    res.redirect('/admin?error=spotifyautherror');
+    return;
+  }
+
+  // Request an access token from Spotify
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+  const authOptions = {
+    url: 'https://accounts.spotify.com/api/token',
+    form: {
+      code,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code'
+    },
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    json: true
+  };
+
+  try {
+    const response = await fetch(authOptions.url, {
+      method: 'POST',
+      headers: authOptions.headers,
+      body: new URLSearchParams(authOptions.form)
+    });
+
+    const data = await response.json();
+    console.log("Access token obtained from Spotify:", data.access_token);
+    console.log("Refresh token obtained from Spotify:", data.refresh_token);
+    // Save the access token in the database
+    const username = req.session.user; // Assuming the username is stored in the session
+    console.log("Updating user", username, "with Spotify access token and refresh token");
+    await db.query(
+      "UPDATE users SET spotify_access_token = $1, spotify_refresh_token = $2 WHERE name = $3",
+      [data.access_token, data.refresh_token, username]
+    );
+
+    res.redirect('/admin?message=spotifysuccess');
+  } catch (err) {
+    console.error("Failed to obtain access token from Spotify:", err);
+    res.redirect('/admin?error=spotifyautherror');
+  }
+
+
 });
 
 // Mark a song request as played:
@@ -103,7 +217,7 @@ router.post("/playsong", async (req, res) => {
   });
 });
 
-// Mark a song as "coming up":
+// Mark a song as "coming up": (This is now used to queue a song in Spotify)
 router.post("/comingup", async (req, res) => {
   const { id } = req.body;
   console.log("Coming up called for id:", id);
@@ -127,6 +241,45 @@ router.post("/comingup", async (req, res) => {
     // Försöker markera någon annans song!
     res.status(401).send();
     return;
+  }
+
+  // Queue the song in Spotify using a POST request to /me/player/queue
+  // Get the users spotify access token
+  const res2 = await db.query(
+    "SELECT spotify_access_token FROM users WHERE name=$1",
+    [req.session.user]
+  );
+  const spotifyAccessToken = res2.rows[0]?.spotify_access_token;
+
+  if (!spotifyAccessToken) {
+    // User has not connected to spotify
+    res.status(401).send();
+    return;
+  }
+
+  // Queue the song in Spotify
+  try {
+    const uri = `spotify:track:${song.song_spotify_id}`;
+    const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${spotifyAccessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Failed to queue song in Spotify:', errorData);
+      res.status(response.status).json({ error: 'Failed to queue song in Spotify', details: errorData });
+      return;
+    }
+
+    console.log('Song queued successfully in Spotify');
+  } catch (error) {
+    console.error('Error occurred while queuing song in Spotify:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 
   // Update the song request status to "coming_up":

@@ -6,6 +6,9 @@ export default createStore({
     username: "",
     timeslots: [],
     songRequests: [],
+    spotifyQueue: [],
+    currentlyPlaying: undefined,
+    spotifyConnected: false,
     selectedBookingTimeslot: "",
     songRequestResponse: "",
     //spotifyAccessToken: null,
@@ -40,6 +43,19 @@ export default createStore({
     },
     setSongRequests(state, songRequests) {
       state.songRequests = songRequests;
+    },
+    setSpotifyQueue(state, spotifyQueue) {
+      console.log("Setting spotify queue in store to: ", spotifyQueue);
+      state.spotifyQueue = spotifyQueue;
+    },
+    setCurrentlyPlaying(state, song) {
+      state.currentlyPlaying = song;
+    },
+    addSpotifyQueue(state, song) {
+      state.spotifyQueue.push(song);
+    },
+    setSpotifyConnected(state, connected) {
+      state.spotifyConnected = connected;
     },
     setSelectedBookingTimeslot(state, timeslot) {
       state.selectedBookingTimeslot = timeslot;

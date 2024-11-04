@@ -21,10 +21,12 @@
         <span v-else class="overflow-hidden small">
           <strong>{{ songRequest.song_title }}</strong>
         </span>
-        <span v-if="songRequest.song_artist"> by {{ songRequest.song_artist }} </span>
       </div>
-      <div v-else>
-        <i class="fas text-dark fa-user me-3"></i><strong>{{ songRequest.song_artist }}</strong>
+    </div>
+    <div v-if="songRequest.song_artist" class="px-3 mt-1 mb-2 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center w-100">
+        <i class="fas text-dark fa-user me-3 icon-size"></i>
+        <span class="overflow-hidden text-nowrap small">{{ songRequest.song_artist }}</span>
       </div>
     </div>
     <div v-if="songRequest.song_genre" class="px-3 mt-1 d-flex justify-content-between align-items-center">
@@ -46,7 +48,7 @@
         @click="$emit('submit-comingup', songRequest.id)"
       >
         <i class="fas mt-1 fa-check"></i>
-        <span class="px-0 small mt-auto">Accept</span>
+        <span class="px-0 small mt-auto">Accept & Queue</span>
       </button>
       <button
         type="button"
@@ -57,7 +59,7 @@
         <span class="px-0 small mt-auto">Reject</span>
       </button>
     </div>
-    <div v-else class="btn-group d-flex w-100 mt-2 border-top border-secondary" role="group">
+    <!-- <div v-else class="btn-group d-flex w-100 mt-2 border-top border-secondary" role="group">
       <button
         type="button"
         class="btn text-secondary-custom bg-tertiary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
@@ -66,7 +68,7 @@
         <i :class="status === 'playing' ? 'fas mt-1 fa-check' : 'fas mt-1 fa-play'"></i>
         <span class="px-0 small mt-auto">Mark as played</span>
       </button>
-    </div>
+    </div> -->
   </div>
 </template>
   
