@@ -199,16 +199,25 @@ router.get("/spotifyqueue/:username", async (req, res) => {
   }
 
   // Retrieve the users spotify queue from /me/player/queue
-  const response = await fetch('https://api.spotify.com/v1/me/player/queue', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${spotifyAccessToken}`
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/queue', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${spotifyAccessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  });
 
-  const spotifyQueue = await response.json();
+    const spotifyQueue = await response.json();
+    res.status(200).json({ spotifyQueue });
+  } catch (error) {
+    console.error('Failed to retrieve Spotify queue:', error);
+    res.status(500).json({ error: 'An error occurred while retrieving the Spotify queue. The app is still in development mode, and in order for you to connect your Spotify account, you first need to whitelist your Spotify account in the developer Spotify Dashboard. Please contact the developers at schuhmacher.elias@gmail.com' });
+  }
 
-  res.status(200).json({ spotifyQueue });
 });
 
 

@@ -59,8 +59,9 @@
       <p v-if="$store.state.spotifyConnected" class="text-muted text-small mb-0">
         Connected to spotify
       </p>
-      <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Connect to Spotify</button>
-      <button v-else type="button" class="btn btn-success w-100 mt-2" @click="connectToSpotify">Refresh Spotify Connection</button>
+      <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Connect to Spotify</button>
+      <button v-else type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Refresh Spotify Connection</button>
+      <p v-if="spotifyErrorMessage" class="text-muted text-small mt-2">{{ spotifyErrorMessage }}</p>
     </div>
     <!-- <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
@@ -93,6 +94,7 @@ export default {
     newtime: "10:00",
     intervalId: null,
     spotifyQueueRefreshInterval: 1000 * 15, // 15 seconds
+    spotifyErrorMessage: "",
     // TODO: save id of last song request
   }),
   computed: {
@@ -150,10 +152,25 @@ export default {
       window.location.href = "/api/spotifylogin";
     },
     getSpotifyQueue() {
+      // Check if the user is connected to Spotify
+      if (!this.$store.state.spotifyConnected) {
+        // Cancel the interval polling
+        this.stopPolling();
+        return;
+      }
+
+      // Fetch the Spotify queue
       fetch(`/api/spotifyqueue/${this.$store.state.username}`, {
         method: "GET",
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            return res.json().then((errorData) => {
+              throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+            });
+          }
+          return res.json();
+        })
         .then((data) => {
           console.log("Spotify Queue: ", data);
           // Commit to store
@@ -163,12 +180,22 @@ export default {
             song_spotify_id: song.id,
           }));
           this.$store.commit("setSpotifyQueue", queue);
+          if (!data.spotifyQueue.currently_playing) {
+            this.$store.commit("setCurrentlyPlaying", {});
+            return;
+          }
           const { name, id, artists } = data.spotifyQueue.currently_playing;
           this.$store.commit("setCurrentlyPlaying", {
             song_title: name,
             song_artist: artists.map((artist) => artist.name).join(", "),
             song_spotify_id: id,
           });
+        })
+        .catch((err) => {
+          console.error("Failed to fetch Spotify queue:", err);
+          this.spotifyErrorMessage = err.message || "Failed to fetch Spotify queue";
+          // Commit to store that the user is no longer connected to Spotify
+          this.$store.commit("setSpotifyConnected", false);
         });
     },
     startPolling() {
