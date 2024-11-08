@@ -174,22 +174,27 @@ export default {
         .then((data) => {
           console.log("Spotify Queue: ", data);
           // Commit to store
-          const queue = data.spotifyQueue.queue?.map((song) => ({
-            song_title: song.name,
-            song_artist: song.artists.map((artist) => artist.name).join(", "),
-            song_spotify_id: song.id,
-          }));
-          this.$store.commit("setSpotifyQueue", queue);
-          if (!data.spotifyQueue.currently_playing) {
-            this.$store.commit("setCurrentlyPlaying", {});
-            return;
+          if (data.spotifyQueue.queue) {
+            const queue = data.spotifyQueue.queue?.map((song) => ({
+              song_title: song.name,
+              song_artist: song.artists?.map((artist) => artist.name).join(", ") || "",
+              song_spotify_id: song.id,
+            }));
+            this.$store.commit("setSpotifyQueue", queue);
+          } else {
+            this.$store.commit("setSpotifyQueue", []);
           }
-          const { name, id, artists } = data.spotifyQueue.currently_playing;
-          this.$store.commit("setCurrentlyPlaying", {
-            song_title: name,
-            song_artist: artists.map((artist) => artist.name).join(", "),
-            song_spotify_id: id,
-          });
+
+          if (data.spotifyQueue.currently_playing) {
+            const { name, id, artists } = data.spotifyQueue.currently_playing;
+            this.$store.commit("setCurrentlyPlaying", {
+              song_title: name,
+              song_artist: artists?.map((artist) => artist.name).join(", ") || "",
+              song_spotify_id: id,
+            });
+          } else {
+            this.$store.commit("setCurrentlyPlaying", {});
+          }
         })
         .catch((err) => {
           console.error("Failed to fetch Spotify queue:", err);
