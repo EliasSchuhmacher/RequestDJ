@@ -208,16 +208,22 @@ router.get("/spotifyqueue/:username", async (req, res) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorBody = await response.text(); // Read the response body for additional error details
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
 
     const spotifyQueue = await response.json();
     res.status(200).json({ spotifyQueue });
   } catch (error) {
-    console.error('Failed to retrieve Spotify queue:', error);
-    res.status(500).json({ error: 'An error occurred while retrieving the Spotify queue. The app is still in development mode, and in order for you to connect your Spotify account, you first need to whitelist your Spotify account in the developer Spotify Dashboard. Please contact the developers at schuhmacher.elias@gmail.com' });
+    console.error('Failed to retrieve Spotify queue:', {
+      message: error.message,
+    });
+  
+    res.status(500).json({
+      error: 'An error occurred while retrieving the Spotify queue. The app is still in development mode, and in order for you to connect your Spotify account, you first need to whitelist your Spotify account in the developer Spotify Dashboard. Please contact the developers at schuhmacher.elias@gmail.com',
+      details: error.message, // Include the error message for debugging
+    }); 
   }
-
 });
 
 
