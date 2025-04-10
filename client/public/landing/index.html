@@ -657,45 +657,45 @@
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
     <script>
-        window.addEventListener("DOMContentLoaded", () => {
-            console.log("✅ DOM fully loaded");
+    window.addEventListener("DOMContentLoaded", () => {
+        //console.log("✅ DOM fully loaded");
 
-            // ✅ Step 1: Check if session cookie exists
-            const isLoggedIn = document.cookie
-                .split('; ')
-                .some(cookie => cookie === 'dj_logged_in=true');
+        // ✅ Step 1: Check if session cookie exists
+        const isLoggedIn = document.cookie
+            .split('; ')
+            .some(cookie => cookie === 'dj_logged_in=true');
 
-            console.log("🧠 isLoggedIn:", isLoggedIn);
+        //console.log("🧠 isLoggedIn:", isLoggedIn);
 
-            if (isLoggedIn) {
-            // ✅ Step 2: Find existing login/signup buttons
+        if (isLoggedIn) {
+            // ✅ Step 2: Find login/signup buttons
             const loginBtn = document.querySelector('.btn-login');
             const signupBtn = document.querySelector('.btn-signup');
 
             console.log("🔍 Found login button:", loginBtn);
             console.log("🔍 Found signup button:", signupBtn);
 
-            // ✅ Step 3: Create admin + logout buttons
+            // ✅ Step 3: Remove signup button
+            if (signupBtn) {
+                signupBtn.remove();
+                console.log("🗑️ Removed signup button");
+            }
+
+            // ✅ Step 4: Create admin button
             const adminBtn = document.createElement("a");
             adminBtn.href = "/admin";
             adminBtn.className = "btn btn-light border border-primary rounded-pill text-primary py-2 px-4 me-4";
             adminBtn.innerText = "Admin";
 
-            const logoutBtn = document.createElement("a");
-            logoutBtn.href = "/logout";
-            logoutBtn.className = "btn btn-primary rounded-pill text-white py-2 px-4";
-            logoutBtn.innerText = "Logout";
-
-            // ✅ Step 4: Replace buttons
-            if (loginBtn && signupBtn) {
+            // ✅ Step 5: Replace login button with admin button
+            if (loginBtn) {
                 loginBtn.replaceWith(adminBtn);
-                signupBtn.replaceWith(logoutBtn);
-                console.log("✅ Replaced login/signup with admin/logout");
+                console.log("✅ Replaced login with admin button");
             } else {
-                console.warn("⚠️ Could not find login/signup buttons to replace.");
+                console.warn("⚠️ Could not find login button to replace.");
             }
-            }
-        });
+        }
+    });
 
     </script> 
     
