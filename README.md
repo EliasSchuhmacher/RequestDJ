@@ -23,7 +23,8 @@ The source code for the RequestDJ project, hosted at https://requestdj.onrender.
 - [Bootstrap](https://getbootstrap.com/) _(endast på klientsidan)_
 - [m.m.](https://www.npmjs.com/)
 
-Om du vill köra koden lokalt: (För att köra koden krävs lokalt krävs att du hostar en egen lokal PostgreSQL databas, samt tillhandahåller en egen Spotify API key.)
+Om du vill köra koden lokalt: (För att köra koden krävs lokalt krävs att du hostar en egen lokal PostgreSQL databas, samt tillhandahåller en egen Spotify API key, skapa en .env fil i server som följer formatet på .env.exempel med korrekta värden)
+När du installerat lokala databasen ändra "db:setup": "psql -U myuser -d myprojectdb -h localhost -f schema.sql" i filen package.json, till dina värden
 
 1. Klona ned och navigera till repot i terminalen.
 

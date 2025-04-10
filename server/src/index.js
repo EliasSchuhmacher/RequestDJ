@@ -12,6 +12,7 @@ import auth from "./controllers/auth.controller.js";
 import timeslot from "./controllers/timeslot.controller.js";
 import sessionStore from './sessionStore.js'; // Import the session store
 import db from './dbPG.js';
+import djUsers from "./djUsers.js";
 
 
 const port = process.env.PORT || 8989;
@@ -19,13 +20,15 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server);
 
+//make IO accessible from controllers
+app.set("io", io);
+
 // Connectt to the database
-db.connect().then(() => {
-  console.log('Connected to PostgreSQL database');
-})
-.catch((err) => {
-  console.error('Error connecting to PostgreSQL database', err);
-});;
+db.connect()
+  .then(() => console.log('✅ Connected to PostgreSQL database'))
+  .catch((err) => {
+    console.error('❌ Error connecting to PostgreSQL database:', err.message || err);
+  });
 
 
 // const sessionStore = new expressSession.MemoryStore();
@@ -99,15 +102,29 @@ Model.init(io, sessionStore);
 io.on("connection", (socket) => {
   const { session, sessionID } = socket.handshake;
   session.socketID = socket.id;
+  const username = session.user;
 
-  // This part needs to be last?:
   session.save((err) => {
-    if (err) console.error(err);
-    else {
-      console.log("New WS connection from sessionID: ", sessionID);
-      // console.debug(`Saved socketID: ${session.socketID}`)};
+    if (err) {
+      console.error("Session save error:", err);
+      return;
+    }
+
+    if (username) {
+      if (!djUsers.has(username)) {
+        djUsers.set(username, []);
+      }
+      const socketList = djUsers.get(username);
+      // Check if this socket is already registered
+      if (!socketList.includes(socket)) {
+        socketList.push(socket);
+      }
+      console.log(`New WS connection for DJ: ${username} (sessionID: ${sessionID})`);
+    } else {
+      console.warn("WebSocket connection without an authenticated user");
     }
   });
+});
 
   // BONUS 4X (Inactivity handling using socket.io):
   // Cancel server session timeout on every "activity" message from client:
@@ -118,7 +135,6 @@ io.on("connection", (socket) => {
   //     Model.resetSessionTimeout(sessionID, session);
   //   }
   // });
-});
 
 server.listen(port, () => {
   console.log(`Listening on http://localhost:${port}/`);

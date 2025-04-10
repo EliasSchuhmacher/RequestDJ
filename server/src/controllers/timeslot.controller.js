@@ -45,20 +45,6 @@ const getSpotifyAccessToken = async () => {
   }
 };
 
-const validateBookersName = (name) => {
-  if (/[0-9]/.test(name) || name.length < 3) {
-    return false;
-  }
-  return true;
-};
-
-router.get("/timeslots", async (req, res) => {
-  const timeslots = await db.all("SELECT * FROM timeslots;");
-
-  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
-  res.status(200).json({ timeslots });
-});
-
 router.get("/spotify/token", async (req, res) => {
   // console.log("we are in the spotify/token function")
   try {
@@ -75,8 +61,6 @@ router.get("/spotify/token", async (req, res) => {
 
 router.post("/check_dj_exist", async (req, res) => {
   const DJ_name = req.body.djName.trim();
-  
-  
   const result = await db.query(
     "SELECT name FROM users WHERE name = $1",
     [DJ_name]
@@ -99,6 +83,8 @@ router.post("/check_dj_exist", async (req, res) => {
 
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
+  console.log("✅ Received POST /api/songs");
+
   // song genre and requester_name defaults to empty string, if not provided
   const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '' } = req.body; 
 
@@ -145,7 +131,6 @@ router.post("/songs", async (req, res) => {
 
 });
 
-// Helper function to get the session for a user
 // Helper function to get the session for a user
 async function getSessionForUser(username) {
   return new Promise((resolve, reject) => {

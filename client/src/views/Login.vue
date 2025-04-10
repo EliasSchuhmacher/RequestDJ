@@ -65,6 +65,7 @@ export default {
       fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           username: this.username,
           password: this.password,
