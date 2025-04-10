@@ -147,12 +147,14 @@ export default {
     spotifyQueue: [],
     currentlyPlaying: {},
     requestSent: false,
+    sentSongRequestId: "",
     errorMessage: "",
     msg: "",
     countdown: 0,
+    countdownInterval: null,
     requestAnotherSongDisabled: false,
     // timeoutLength: 3 * 60 * 1000,
-    timeoutLength: 10 * 1000,
+    timeoutLength: 2 * 60 * 1000,
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),
@@ -177,34 +179,23 @@ export default {
     }
   },
   created() {
+    console.log("Created RequestSongView");
     // Initialize the debounced function with a delay of 300ms
     this.debouncedSearch = this.debounce(this.searchSpotify, 300);
 
-    // Check if lastRequestTime is stored in localStorage, and if so, check if the user has to wait
-    // This is triggered when the page is refreshed
-    const lastRequestTime = localStorage.getItem("lastRequestTime");
-    if (lastRequestTime) {
-      const currentTime = new Date().getTime();
-      const timeElapsed = currentTime - lastRequestTime;
-      if (timeElapsed < this.timeoutLength) {
-        this.requestSent = true;
-        this.requestAnotherSongDisabled = true;
-        this.countdown = this.timeoutLength - timeElapsed;
-        // Set requestAnotherSongDisabled to false after the remaining time
-        // And also setup the countdown timer
-        const interval = setInterval(() => {
-          if (this.countdown > 1000) {
-            this.countdown -= 1000;
-          } else {
-            this.requestAnotherSongDisabled = false;
-            clearInterval(interval);
-          }
-        }, 1000);
-      }
+    // Check if the user has made a request recently, and update the countdown timer
+    this.updateTimer();
+
+    // Check if the user has already made a request
+    const sentSongRequestId = localStorage.getItem("sentSongRequestId");
+    if (sentSongRequestId) {
+      this.sentSongRequestId = sentSongRequestId;
+      this.fetchSongRequestStatus(this.sentSongRequestId); // Fetch the status of the previous request
     }
   },
   
   async mounted() {
+    console.log("Mounted RequestSongView");
     try {
       this.token = await this.fetchSpotifytoken(); // Use await to get the resolved token
       // console.log("Fetched token on mount:", this.token); // Log the token
@@ -212,17 +203,19 @@ export default {
       console.error("Error fetching token on mount:", error);
     }
     this.fetchSpotifyQueue();
+
+    // Add event listener for window focus
+    window.addEventListener("focus", this.handleWindowFocus);
+  },
+
+
+  beforeUnmount() {
+    // Remove event listener to avoid memory leaks
+    window.removeEventListener("focus", this.handleWindowFocus);
   },
 
 
   methods: {
-    validateEmail() {
-      if (!/[0-9]/.test(this.name) && this.name.length >= 3) {
-        this.msg = "";
-      } else {
-        this.msg = "Name must consist of at least 3 letters";
-      }
-    },
   
     // we only want to send spotify request after 300 ms after typing  
     debounce(func, delay) {
@@ -232,6 +225,45 @@ export default {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), delay);
       };
+    },
+
+    // Handle the window focus event, updating the song request status and timer
+    handleWindowFocus() {
+      console.log("Window focused");
+      if (this.requestSent && this.sentSongRequestId) {
+        this.updateTimer(); // Call updateTimer
+        console.log("window focused, fetching song request status");
+        this.fetchSongRequestStatus(this.sentSongRequestId); // Call fetchSongRequestStatus with the song request ID
+      }
+    },
+
+    // Check if the user has already made a request and update the count
+    updateTimer() {
+      // This is triggered when the page is refreshed
+      const lastRequestTime = localStorage.getItem("lastRequestTime");
+      if (lastRequestTime) {
+        const currentTime = new Date().getTime();
+        const timeElapsed = currentTime - lastRequestTime;
+        if (timeElapsed < this.timeoutLength) {
+          this.requestSent = true;
+          this.requestAnotherSongDisabled = true;
+          this.countdown = this.timeoutLength - timeElapsed;
+          // Set requestAnotherSongDisabled to false after the remaining time
+          // Clear any existing countdown interval
+          if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+          }
+          // And also setup the countdown timer
+          this.countdownInterval= setInterval(() => {
+            if (this.countdown > 1000) {
+              this.countdown -= 1000;
+            } else {
+              this.requestAnotherSongDisabled = false;
+              clearInterval(this.countdownInterval);
+            }
+          }, 1000);
+        }
+      }
     },
 
     // if they choose one of the suggestions submit
@@ -375,16 +407,17 @@ export default {
       // Disable the request button and start the countdown
       this.requestAnotherSongDisabled = true;
       this.countdown = this.timeoutLength;
-      const interval = setInterval(() => {
+      this.countdownInterval = setInterval(() => {
         if (this.countdown > 0) {
           this.countdown -= 1000;
         } else {
           this.requestAnotherSongDisabled = false;
-          clearInterval(interval);
+          clearInterval(this.countdownInterval);
         }
       }, 1000);
 
       this.requestSent = true;
+      this.$store.commit("setSongRequestResponse", "");
 
       // Send the booking to server via AJAX-post request
       fetch(`/api/songs`, {
@@ -406,16 +439,45 @@ export default {
             throw new Error(error.message || "An error occurred");
           });
         }
-        return response;
+        return response.json();
       })
-      .then(() => {
+      .then((response) => {
+        this.sentSongRequestId = response.id; // Save the returned song ID
         localStorage.setItem("lastRequestTime", currentTime);
+        localStorage.setItem("sentSongRequestId", this.sentSongRequestId); // Save the song request ID
       })
-      .catch(error => {
+      .catch(err => {
         this.requestSent = false;
-        this.errorMessage = error.message;
+        this.errorMessage = err.message;
       });
     },
+
+    // Method to fetch the current status of the song request, called on window focus
+    fetchSongRequestStatus(songRequestId) {
+      console.log("Fetching song request status for ID:", songRequestId);
+      fetch(`/api/songrequests/${songRequestId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Include credentials such as cookies
+      })
+        .then((response) => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              throw new Error("Song request not found");
+            }
+            throw new Error("Failed to fetch song request status");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          this.$store.commit("setSongRequestResponse", data.status);
+        })
+        .catch((err) => {
+          console.error("Error fetching song request status:", err);
+          this.$store.commit("setSongRequestResponse", "rejected"); // Optionally set an error state
+        });
+    },
+
     
     reset() {
       this.requestSent = false;

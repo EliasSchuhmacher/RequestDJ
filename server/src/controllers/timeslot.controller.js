@@ -45,19 +45,6 @@ const getSpotifyAccessToken = async () => {
   }
 };
 
-const validateBookersName = (name) => {
-  if (/[0-9]/.test(name) || name.length < 3) {
-    return false;
-  }
-  return true;
-};
-
-router.get("/timeslots", async (req, res) => {
-  const timeslots = await db.all("SELECT * FROM timeslots;");
-
-  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
-  res.status(200).json({ timeslots });
-});
 
 router.get("/spotify/token", async (req, res) => {
   // console.log("we are in the spotify/token function")
@@ -96,7 +83,6 @@ router.post("/check_dj_exist", async (req, res) => {
   }
 });
 
-
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
   // song genre and requester_name defaults to empty string, if not provided
@@ -122,15 +108,16 @@ router.post("/songs", async (req, res) => {
 
   // Insert song request into database
   const insertResult = await db.query(
-    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;",
     [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id]
   );
 
-  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
-  res.status(200).end();
-
   const newId = insertResult.rows[0].id;
   // console.log("New ID: ", newId);
+  
+  // Choose the appropriate HTTP response status code and send an HTTP response back to the client
+  // Return the new song request json object to the client so that it has the id
+  res.status(201).json(insertResult.rows[0]);
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
   const result = await db.query(
@@ -145,7 +132,6 @@ router.post("/songs", async (req, res) => {
 
 });
 
-// Helper function to get the session for a user
 // Helper function to get the session for a user
 async function getSessionForUser(username) {
   return new Promise((resolve, reject) => {
@@ -178,6 +164,7 @@ router.get("/spotifyqueue/:username", async (req, res) => {
   //   res.status(401).send();
   //   return;
   // }
+  
   // Check if the target user is logged in
   const session = await getSessionForUser(username);
   if (!session) {
@@ -224,6 +211,33 @@ router.get("/spotifyqueue/:username", async (req, res) => {
       details: error.message, // Include the error message for debugging
     }); 
   }
+});
+
+// Create an endpoint that retreives the status of a song request
+router.get("/songrequests/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    // Request missing properties, don't let it crash the server
+    res.send(400).send();
+    return;
+  }
+
+  // Get the song request from the database
+  const result = await db.query(
+    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre FROM songrequests WHERE id = $1;",
+    [id]
+  );
+  const songRequest = result.rows[0];
+
+  if (!songRequest) {
+    // Song request not found
+    res.status(404).send();
+    return;
+  }
+
+  // Send the song request back to the client
+  res.status(200).json(songRequest);
 });
 
 
