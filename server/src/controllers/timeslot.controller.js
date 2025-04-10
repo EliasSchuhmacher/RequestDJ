@@ -80,7 +80,6 @@ router.post("/check_dj_exist", async (req, res) => {
   }
 });
 
-
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
   console.log("✅ Received POST /api/songs");
@@ -108,15 +107,16 @@ router.post("/songs", async (req, res) => {
 
   // Insert song request into database
   const insertResult = await db.query(
-    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;",
     [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id]
   );
 
-  // Choose the appropriate HTTP response status code and send an HTTP response, if any, back to the client
-  res.status(200).end();
-
   const newId = insertResult.rows[0].id;
   // console.log("New ID: ", newId);
+  
+  // Choose the appropriate HTTP response status code and send an HTTP response back to the client
+  // Return the new song request json object to the client so that it has the id
+  res.status(201).json(insertResult.rows[0]);
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
   const result = await db.query(
@@ -163,6 +163,7 @@ router.get("/spotifyqueue/:username", async (req, res) => {
   //   res.status(401).send();
   //   return;
   // }
+  
   // Check if the target user is logged in
   const session = await getSessionForUser(username);
   if (!session) {
@@ -193,16 +194,49 @@ router.get("/spotifyqueue/:username", async (req, res) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorBody = await response.text(); // Read the response body for additional error details
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
 
     const spotifyQueue = await response.json();
     res.status(200).json({ spotifyQueue });
   } catch (error) {
-    console.error('Failed to retrieve Spotify queue:', error);
-    res.status(500).json({ error: 'An error occurred while retrieving the Spotify queue. The app is still in development mode, and in order for you to connect your Spotify account, you first need to whitelist your Spotify account in the developer Spotify Dashboard. Please contact the developers at schuhmacher.elias@gmail.com' });
+    console.error('Failed to retrieve Spotify queue:', {
+      message: error.message,
+    });
+  
+    res.status(500).json({
+      error: 'An error occurred while retrieving the Spotify queue. The app is still in development mode, and in order for you to connect your Spotify account, you first need to whitelist your Spotify account in the developer Spotify Dashboard. Please contact the developers at schuhmacher.elias@gmail.com',
+      details: error.message, // Include the error message for debugging
+    }); 
+  }
+});
+
+// Create an endpoint that retreives the status of a song request
+router.get("/songrequests/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    // Request missing properties, don't let it crash the server
+    res.send(400).send();
+    return;
   }
 
+  // Get the song request from the database
+  const result = await db.query(
+    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre FROM songrequests WHERE id = $1;",
+    [id]
+  );
+  const songRequest = result.rows[0];
+
+  if (!songRequest) {
+    // Song request not found
+    res.status(404).send();
+    return;
+  }
+
+  // Send the song request back to the client
+  res.status(200).json(songRequest);
 });
 
 

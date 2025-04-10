@@ -1,5 +1,10 @@
 <template>
   <div class="row pt-sm-3 h-100">
+  <!-- Error Alert -->
+  <div v-if="spotifyErrorMessage" class="alert alert-danger alert-dismissible fade show overlay-alert" role="alert">
+    {{ spotifyErrorMessage }}
+    <button type="button" class="btn-close" aria-label="Close" @click="spotifyErrorMessage = ''"></button>
+  </div>
   <div class="col-sm-6 d-flex flex-column custom-height pb-2 pb-sm-0">
     <h3 class="px-sm-5"> Incoming Requests </h3>
     <div class="overflow-auto px-sm-5 h-100">
@@ -61,7 +66,7 @@
       </p>
       <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Connect to Spotify</button>
       <button v-else type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Refresh Spotify Connection</button>
-      <p v-if="spotifyErrorMessage" class="text-muted text-small mt-2">{{ spotifyErrorMessage }}</p>
+      <!-- <p v-if="spotifyErrorMessage" class="text-muted text-small mt-2">{{ spotifyErrorMessage }}</p> -->
     </div>
     <!-- <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
@@ -246,10 +251,21 @@ export default {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
-      }).then(
-        // fetch the new spotify queue, after a short delay
-        setTimeout(() => this.getSpotifyQueue(), 250)
-      ).catch(console.error);
+      }).then((response) => response.json())
+        .then((data) => {
+          if (!data.songQueued) {
+            console.warn("Spotify queuing failed:", data.message);
+            this.spotifyErrorMessage = `Error when queueing song: ${data.message}`; // Display the error message to the user
+            return;
+          }
+          console.log("Song successfully queued in Spotify.");
+          // Fetch the new Spotify queue after a short delay
+          setTimeout(() => this.getSpotifyQueue(), 250);
+        })
+        .catch((error) => {
+          console.error("Error in submitComingUp:", error.message);
+          this.spotifyErrorMessage = "An error occurred while processing the request.";
+        });
     },
     submitPlaying(id) {
       // Remove the song request from the store
@@ -271,6 +287,15 @@ export default {
 }
 .custom-height {
   height: 50%;
+}
+.overlay-alert {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050; /* Ensure it appears above other elements */
+  max-width: 90%; /* Adjust width for responsiveness */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 @media (min-width: 576px) {

@@ -1,4 +1,4 @@
-import { json, Router } from "express";
+import e, { json, Router } from "express";
 import Model from "../model.js";
 import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
@@ -256,9 +256,41 @@ router.post("/comingup", async (req, res) => {
   );
   const spotifyAccessToken = res2.rows[0]?.spotify_access_token;
 
+  console.log("Now setting the status to coming_up for song with id:", id);
+  // Update the song request status to "coming_up":
+  db.query(
+    "UPDATE songrequests SET status='coming_up' WHERE id=$1",
+    [id]
+  );
+
+  // Retrieve websocket id of requestert in order to alert them
+  sessionStore.get(song.requester_session_id, (err, session) => {
+    if (err) {
+      console.log("Error retrieving requester session from sessionStore");
+      console.error(err);
+      return;
+    }
+
+    if (session && session.socketID) {
+      const requesterWebsocketId = session.socketID;
+      // Alert the requester of the song that it is coming up:
+      Model.alertSongRequestComingUp(requesterWebsocketId);
+    } else {
+      // Requester session not found
+      console.log("Requester session not found, requester not alerted");
+    }
+  });
+
+  // User has not connected to spotify
   if (!spotifyAccessToken) {
-    // User has not connected to spotify
-    res.status(401).send();
+    res.status(200).json({songQueued: false, message: "User has not connected to Spotify"});
+    return;
+  }
+
+  // If the song doesn't have a spotify id
+  if (!song.song_spotify_id) {
+    console.error("Song does not have a Spotify ID");
+    res.status(200).json({songQueued: false, message: "The song does not have a Spotify ID and cannot be queued in Spotify."});
     return;
   }
 
@@ -277,41 +309,18 @@ router.post("/comingup", async (req, res) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Failed to queue song in Spotify:', errorData);
-      res.status(response.status).json({ error: 'Failed to queue song in Spotify', details: errorData });
+      res.status(200).json({songQueued: false, message: errorData.error.message});
       return;
     }
 
     console.log('Song queued successfully in Spotify');
   } catch (error) {
     console.error('Error occurred while queuing song in Spotify:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(200).json({songQueued: false, message: error.message});
+    return;
   }
 
-  // Update the song request status to "coming_up":
-  db.query(
-    "UPDATE songrequests SET status='coming_up' WHERE id=$1",
-    [id]
-  );
-  // Retrieve websocket id of requestert in order to alert them
-  sessionStore.get(song.requester_session_id, (err, session) => {
-    if (err) {
-      console.log("Error retrieving requester session from sessionStore");
-      console.error(err);
-      res.status(200).send();
-      return;
-    }
-
-    if (session && session.socketID) {
-      const requesterWebsocketId = session.socketID;
-      // Alert the requester of the song that it is coming up:
-      Model.alertSongRequestComingUp(requesterWebsocketId);
-    } else {
-      // Requester session not found
-      console.log("Requester session not found, requester not alerted");
-    }
-
-    res.status(200).send();
-  });
+  res.status(200).json({songQueued: true});
 
 });
 
