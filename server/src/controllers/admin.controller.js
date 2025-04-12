@@ -17,6 +17,9 @@ const router = Router();
  * etc.
  */
 
+
+
+
 router.post("/logout", async (req, res) => {
   console.log("Logout called on serverside");
   req.session.authenticated = false;

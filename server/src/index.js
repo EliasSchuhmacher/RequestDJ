@@ -51,11 +51,11 @@ app.use(
 
 // Configure session management
 const sessionConf = expressSession({
-  secret: "Super secret! Shh! Do not tell anyone...",
+  secret: process.env.SESSION_SECRET || "Super secret! Shh! Do not tell anyone...",
   resave: false,
   saveUninitialized: true,
   store: sessionStore,
-  cookie: { maxAge: 86400000 },
+  cookie: { maxAge: 12 * 60 * 60 * 1000 }, // 12 hours
 });
 
 app.use(sessionConf);

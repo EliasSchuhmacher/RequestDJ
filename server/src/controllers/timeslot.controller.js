@@ -20,7 +20,6 @@ const router = Router();
 const getSpotifyAccessToken = async () => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   try {
@@ -43,6 +42,56 @@ const getSpotifyAccessToken = async () => {
     console.error('Failed to get Spotify Access Token:', error);
     throw new Error('Unable to fetch Spotify Access Token');
   }
+};
+
+const refreshSpotifyAccessToken = async (username) => {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  // Get the refresh token from the database
+  const result = await db.query(
+    "SELECT spotify_refresh_token FROM users WHERE name = $1",
+    [username]
+  );
+  const refresh_token = result.rows[0]?.refresh_token;
+
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error refreshing Spotify token: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Update the access token in the database
+    await db.query(
+      "UPDATE users SET spotify_access_token = $1 WHERE name = $2",
+      [data.access_token, username]
+    );
+    // if there is a new refresh token, update it in the database
+    if (data.refresh_token) {
+      await db.query(
+        "UPDATE users SET spotify_refresh_token = $1 WHERE name = $2",
+        [data.refresh_token, username]
+      );
+    }
+  }
+  catch (error) { 
+    console.error('Failed to refresh Spotify Access Token:', error);
+  }
+  
 };
 
 
@@ -207,8 +256,7 @@ router.get("/spotifyqueue/:username", async (req, res) => {
     });
   
     res.status(500).json({
-      error: 'An error occurred while retrieving the Spotify queue. The app is still in development mode, and in order for you to connect your Spotify account, you first need to whitelist your Spotify account in the developer Spotify Dashboard. Please contact the developers at schuhmacher.elias@gmail.com',
-      details: error.message, // Include the error message for debugging
+      error: `An error occurred while retrieving the Spotify queue: ${error.message}`,
     }); 
   }
 });
