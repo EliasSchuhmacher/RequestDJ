@@ -7,11 +7,11 @@ export default createStore({
     timeslots: [],
     songRequests: [],
     spotifyQueue: [],
-    currentlyPlaying: undefined,
+    currentlyPlaying: {},
     spotifyConnected: false,
     selectedBookingTimeslot: "",
     songRequestResponse: "",
-    //spotifyAccessToken: null,
+    // spotifyAccessToken: null,
   },
   getters: {
     isAuthenticated(state) {

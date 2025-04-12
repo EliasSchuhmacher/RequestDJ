@@ -9,9 +9,10 @@ import { resolvePath } from "./util.js";
 import Model from "./model.js";
 import admin from "./controllers/admin.controller.js";
 import auth from "./controllers/auth.controller.js";
-import timeslot from "./controllers/timeslot.controller.js";
+import { router as timeslotRouter } from "./controllers/timeslot.controller.js";
 import sessionStore from './sessionStore.js'; // Import the session store
 import db from './dbPG.js';
+import { time } from "console";
 
 
 const port = process.env.PORT || 8989;
@@ -77,11 +78,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Bind REST controllers to /api/*
-app.use("/api", timeslot.router);
+app.use("/api", timeslotRouter);
 app.use("/api", auth.router);
 app.use("/api", auth.requireAuth(sessionStore), admin.router);
-
-// app.use("/api", admin.requireAuth, chat.router);
 
 // Redirect invalid requests to starting page
 // app.use("*", (req, res) => {
@@ -109,15 +108,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // BONUS 4X (Inactivity handling using socket.io):
-  // Cancel server session timeout on every "activity" message from client:
-  // socket.on("message", (data) => {
-  //   console.log("data in websocket message: ", data);
-  //   if (data === "activity") {
-  //     console.log("activity notification recieved from client");
-  //     Model.resetSessionTimeout(sessionID, session);
-  //   }
-  // });
 });
 
 server.listen(port, () => {

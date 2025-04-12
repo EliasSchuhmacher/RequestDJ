@@ -315,4 +315,4 @@ router.get("/songrequests/:id", async (req, res) => {
 });
 
 
-export default { router, refreshSpotifyAccessToken };
+export { router, refreshSpotifyAccessToken };

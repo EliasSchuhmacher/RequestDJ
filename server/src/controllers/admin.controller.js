@@ -95,6 +95,29 @@ router.get("/spotifylogin", async (req, res) => {
   res.redirect(`https://accounts.spotify.com/authorize?${params.toString()}`);
 });
 
+// Disconnect from spotify:
+router.post("/spotifydisconnect", async (req, res) => {
+  const username = req.session.user;
+
+  // Check that the user is logged in
+  if (!username) {
+    // User is not logged in, send response code 401;
+    res.send(400).send();
+    return;
+  }
+
+  console.log("Spotify disconnect called for user:", username);
+  // Remove the access token from the database
+  await db.query(
+    "UPDATE users SET spotify_access_token = NULL, spotify_refresh_token = NULL WHERE name = $1",
+    [username]
+  );
+  console.log("Spotify access token removed from database for user:", username);
+
+  // Respond with success
+  res.status(200).send();
+});
+
 // Callback from spotify:
 router.get("/spotifycallback", async (req, res) => {
   const { code, state, error } = req.query;

@@ -61,11 +61,12 @@
         @submit-comingup="prevent"
         />
       </transition-group>
-      <p v-if="$store.state.spotifyConnected" class="text-muted text-small mb-0">
-        Connected to spotify
-      </p>
-      <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Connect to Spotify</button>
-      <button v-else type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Refresh Spotify Connection</button>
+      <button v-if="!$store.state.spotifyConnected" type="button" class="btn btn-success w-100 mt-2 mb-3 bg-green-custom" @click="connectToSpotify">Connect to Spotify</button>
+      <div v-if="$store.state.spotifyConnected" class="d-flex justify-content-between align-items-center">
+        <p class="text-muted text-small">Connected to Spotify</p>
+        <p class="btn p-0 text-muted text-small" @click="spotifyDisconnect">Disconnect</p>
+      </div>
+      <!-- <button v-else type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Refresh Spotify Connection</button> -->
       <!-- <p v-if="spotifyErrorMessage" class="text-muted text-small mt-2">{{ spotifyErrorMessage }}</p> -->
     </div>
     <!-- <div class="overflow-auto px-sm-5 h-100">
@@ -156,6 +157,29 @@ export default {
       // Redirect to the Spotify login page
       window.location.href = "/api/spotifylogin";
     },
+    spotifyDisconnect() {
+      // Disconnect the Spotify account
+      fetch("/api/spotifydisconnect", {
+        method: "POST",
+      })
+        .then((res) => {
+          if (res.ok) {
+            // If the response status is 200 OK
+            this.$store.commit("setSpotifyConnected", false);
+            this.$store.commit("setSpotifyQueue", []);
+            this.$store.commit("setCurrentlyPlaying", {});
+            this.stopPolling();
+            this.spotifyErrorMessage = "Successfully disconnected from Spotify.";
+          } else {
+            // Handle non-200 responses
+            this.spotifyErrorMessage = "Failed to disconnect from Spotify.";
+          }
+        })
+        .catch((err) => {
+          console.error("Error disconnecting from Spotify:", err);
+          this.spotifyErrorMessage = "An error occurred while disconnecting from Spotify." + err.message;
+        });
+    },
     getSpotifyQueue() {
       // Check if the user is connected to Spotify
       if (!this.$store.state.spotifyConnected) {
@@ -198,7 +222,7 @@ export default {
               song_spotify_id: id,
             });
           } else {
-            this.$store.commit("setCurrentlyPlaying", {});
+            this.$store.commit("setCurrentlyPlaying", undefined);
           }
         })
         .catch((err) => {
