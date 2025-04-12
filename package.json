@@ -19,10 +19,5 @@
     "start": "npm run client:build && npm run server:start"
   },
   "version": "1.0.0",
-  "dependencies": {
-    // "bcrypt": "^5.1.0",
-    // "dotenv": "^16.4.5",
-    // "sqlite": "^4.1.2",
-    // "sqlite3": "^5.1.6"
-  }
+  "dependencies": {}
 }

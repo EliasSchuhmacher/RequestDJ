@@ -44,6 +44,7 @@ const getSpotifyAccessToken = async () => {
   }
 };
 
+// Function to refresh the Spotify access token, throws an error if it fails so call needs to be inside try/catch
 const refreshSpotifyAccessToken = async (username) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -54,7 +55,11 @@ const refreshSpotifyAccessToken = async (username) => {
     "SELECT spotify_refresh_token FROM users WHERE name = $1",
     [username]
   );
-  const refresh_token = result.rows[0]?.refresh_token;
+  const refresh_token = result.rows[0]?.spotify_refresh_token;
+
+  if (!refresh_token) {
+    throw new Error(`No refresh token found for user: ${username}`);
+  }
 
   try {
     const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -87,9 +92,12 @@ const refreshSpotifyAccessToken = async (username) => {
         [data.refresh_token, username]
       );
     }
+
+    return data.access_token; // Return the new access token
   }
   catch (error) { 
     console.error('Failed to refresh Spotify Access Token:', error);
+    throw new Error(`Failed to refresh Spotify Access Token for user: ${username}. ${error.message}`);
   }
   
 };
@@ -226,7 +234,7 @@ router.get("/spotifyqueue/:username", async (req, res) => {
     "SELECT spotify_access_token FROM users WHERE name=$1",
     [username]
   );
-  const spotifyAccessToken = result.rows[0]?.spotify_access_token;
+  let spotifyAccessToken = result.rows[0]?.spotify_access_token;
 
   if (!spotifyAccessToken) {
     // User has not connected to spotify
@@ -245,6 +253,24 @@ router.get("/spotifyqueue/:username", async (req, res) => {
 
     if (!response.ok) {
       const errorBody = await response.text(); // Read the response body for additional error details
+      // if the response is 401, try to refresh the token
+      if (response.status === 401) {
+        console.log("Spotify token expired, refreshing...");
+        spotifyAccessToken = await refreshSpotifyAccessToken(username); // Get a new access token
+        // Retry the request with the new token
+        const newResponse = await fetch('https://api.spotify.com/v1/me/player/queue', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${spotifyAccessToken}`
+          }
+        });
+        if (!newResponse.ok) {
+          throw new Error(`HTTP error! status: ${newResponse.status}, body: ${errorBody}`);
+        }
+        const spotifyQueue = await newResponse.json();
+        res.status(200).json({ spotifyQueue });
+        return;
+      }
       throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
 
