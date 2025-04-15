@@ -148,7 +148,8 @@ export default {
       // ENTER YOUR WIFI LOCAL IP HERE (temporary solution):
       // const localip = "";
       // const localip = "192.168.1.121";
-      const qrcodeURL = "http://localhost:8989/requestsong/";
+      // const qrcodeURL = "http://localhost:8989/requestsong/";
+      const qrcodeURL = "http://requestdj.onrender.com/requestsong/";
 
       // if (!localip) {
       //   // eslint-disable-next-line no-alert

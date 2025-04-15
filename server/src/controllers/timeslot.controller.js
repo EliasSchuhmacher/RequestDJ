@@ -251,7 +251,8 @@ router.get("/spotifyqueue/:username", async (req, res) => {
     });
 
     if (!response.ok) {
-      const errorBody = await response.text(); // Read the response body for additional error details
+      const errorBody = await response.json(); // Read the response body for additional error details
+      const errorMessage = errorBody?.error?.message || JSON.stringify(errorBody);
       // if the response is 401, try to refresh the token
       if (response.status === 401) {
         console.log("Spotify token expired, refreshing...");
@@ -264,13 +265,15 @@ router.get("/spotifyqueue/:username", async (req, res) => {
           }
         });
         if (!newResponse.ok) {
-          throw new Error(`HTTP error! status: ${newResponse.status}, body: ${errorBody}`);
+          const newErrorBody = await newResponse.json();
+          const newErrorMessage = newErrorBody?.error?.message || JSON.stringify(newErrorBody);
+          throw new Error(`HTTP error! status: ${newResponse.status}, message: ${newErrorMessage}`);
         }
         const spotifyQueue = await newResponse.json();
         res.status(200).json({ spotifyQueue });
         return;
       }
-      throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorMessage}`);
     }
 
     const spotifyQueue = await response.json();
