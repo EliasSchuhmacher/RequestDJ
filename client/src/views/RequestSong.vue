@@ -122,7 +122,6 @@
 </template>
 
 <script>
-import { error } from "console";
 import SongRequestCard from "../components/SongRequestCard.vue";
 
 export default {

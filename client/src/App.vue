@@ -69,9 +69,11 @@ export default {
     const { push } = this.$router;
 
     // Configure socket responses
-    this.socket.on("new", (songRequest) =>
-      commit("newSongRequest", JSON.parse(songRequest))
-    );
+    this.socket.on("new", (songRequest) => {
+      console.log("📩 New song request received via socket:", songRequest);
+      commit("newSongRequest", songRequest); // no need to parse
+    });
+    
     this.socket.on("played", () =>
       commit("setSongRequestResponse", "played")
     );
@@ -146,7 +148,7 @@ export default {
       // ENTER YOUR WIFI LOCAL IP HERE (temporary solution):
       // const localip = "";
       // const localip = "192.168.1.121";
-      const qrcodeURL = "https://requestdj.onrender.com/requestsong/";
+      const qrcodeURL = "http://localhost:8989/requestsong/";
 
       // if (!localip) {
       //   // eslint-disable-next-line no-alert

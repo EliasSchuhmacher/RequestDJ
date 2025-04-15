@@ -23,6 +23,9 @@ const router = Router();
 
 router.post("/logout", async (req, res) => {
   console.log("Logout called on serverside");
+  res.clearCookie("dj_logged_in");
+  //should we clear this? res.clearCookie("connect.sid");
+
   req.session.authenticated = false;
   req.session.user = "";
   res.status(200).send();
@@ -40,9 +43,11 @@ router.get("/checkspotifyconnected", async (req, res) => {
 
   if (spotifyAccessToken) {
     // User has connected to spotify
+    console.log("connected to spotify")
     res.status(200).json({ connected: true });
   } else {
     // User has not connected to spotify
+    console.log("not connected to spotify")
     res.status(200).json({ connected: false });
   }
 });
@@ -120,9 +125,9 @@ router.post("/spotifydisconnect", async (req, res) => {
 
 // Callback from spotify:
 router.get("/spotifycallback", async (req, res) => {
+
   const { code, state, error } = req.query;
   console.log("Spotify callback called with code:", code, "and state:", state);
-
   if (error) {
     // Spotify returned an error, send response code 400;
     console.log("Spotify returned an error:", error);

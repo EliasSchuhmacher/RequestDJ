@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import Model from "../model.js";
 import db from "../dbPG.js";
+import djUsers from '../djUsers.js';
 
 const router = Router();
 
@@ -21,6 +22,54 @@ const router = Router();
  * @param {Function} next
  * @returns {void}
  */
+//both for login and when created a new dj account
+function handleLogin(req, res, username) {
+  req.session.authenticated = true;
+  req.session.user = username;
+
+  req.session.save((error) => {
+    if (error) {
+      console.error("❌ Error saving session:", error);
+      res.status(500).json({ message: "Error saving session" });
+    } else {
+      console.debug(`✅ Authenticated and saved session for ${username}`);
+
+      // Set a frontend-readable cookie for landing page that cannot access  vuex store
+      res.cookie("dj_logged_in", "true", {
+        maxAge: 86400000,       // 1 day
+        httpOnly: false,        // So frontend JS can read it
+        sameSite: "lax",        // Prevent CSRF from other origins
+        secure: false           // Set to true if using HTTPS
+      });
+
+      // Try to register socket if available
+      const socketId = req.session.socketID;
+      const io = req.app.get("io");
+      const socket = io?.sockets?.sockets?.get(socketId);
+
+      if (socket) {
+        if (!djUsers.has(username)) {
+          djUsers.set(username, []);
+        }
+        const socketList = djUsers.get(username);
+
+        // Avoid pushing the same socket more than once
+        if (!socketList.includes(socket)) {
+          socketList.push(socket);
+          console.log(`🎧 DJ ${username} socket registered on login/signup`);
+        } else {
+          console.log(`🔁 DJ ${username} socket already registered`);
+        }
+      } else {
+        console.warn(`⚠️ No socket found for session ID: ${socketId}`);
+      }
+
+      // Return success
+      res.status(200).json({ authenticated: true });
+    }
+  });
+}
+
 const requireAuth = (sessionStore) => (req, res, next) => {
   // Try using sessionStore.get instead, (Problem with req.session on parallel requests...):
   sessionStore.get(req.sessionID, (err, session) => {
@@ -63,22 +112,8 @@ router.post("/login", async (req, res) => {
     if (result === true) {
       // Password matched! Let the user log in.
       console.log("password matched!");
-      req.session.authenticated = true;
-      req.session.user = username;
-
-      // Start a session timeout timer:
-      // Model.resetSessionTimeout(req.sessionID, req.session);
-
-      req.session.save((error) => {
-        if (error) console.error(error);
-        else console.debug(`Saved and authenticated user: ${username}`);
-      });
-      res.status(200).json({ authenticated: true });
-    } else {
-      // Invalid credentials bitch
-      res.status(401).json({ authenticated: false });
-    }
-  });
+      handleLogin(req, res, username); // ✅ Call your helper function here
+  }});
 });
 
 router.post("/signup", async (req, res) => {
@@ -114,18 +149,7 @@ router.post("/signup", async (req, res) => {
   );
 
   // Authenticate the user
-  req.session.authenticated = true;
-  req.session.user = username;
-
-  req.session.save((error) => {
-    if (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error saving session" });
-    } else {
-      console.debug(`Saved and authenticated new user: ${username}`);
-      res.status(201).json({ authenticated: true });
-    }
-  });
+  handleLogin(req, res, username);
 });
 
 router.get("/sessionStatus", (req, res) => {

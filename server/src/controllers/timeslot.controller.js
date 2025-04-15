@@ -102,7 +102,6 @@ const refreshSpotifyAccessToken = async (username) => {
   
 };
 
-
 router.get("/spotify/token", async (req, res) => {
   // console.log("we are in the spotify/token function")
   try {
@@ -119,8 +118,6 @@ router.get("/spotify/token", async (req, res) => {
 
 router.post("/check_dj_exist", async (req, res) => {
   const DJ_name = req.body.djName.trim();
-  
-  
   const result = await db.query(
     "SELECT name FROM users WHERE name = $1",
     [DJ_name]
@@ -142,6 +139,8 @@ router.post("/check_dj_exist", async (req, res) => {
 
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
+  console.log("✅ Received POST /api/songs");
+
   // song genre and requester_name defaults to empty string, if not provided
   const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '' } = req.body; 
 

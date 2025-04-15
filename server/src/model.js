@@ -1,4 +1,5 @@
 import db from "./db.js";
+import djUsers from "./djUsers.js";
 
 class Model {
   constructor() {
@@ -133,8 +134,11 @@ class Model {
   }
 
   broadcastNewSongRequest(songRequest) {
-    console.log("broadcasting new song request");
-    this.io.emit("new", JSON.stringify(songRequest));
+    const sockets = djUsers.get(songRequest.dj_username) || [];
+  
+    sockets.forEach(socket => {
+      socket.emit("new", songRequest);
+    });
   }
 
   broadcastRemoveTimeslot(id) {
