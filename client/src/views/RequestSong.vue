@@ -311,7 +311,7 @@ export default {
       const query = this.song_title
       // const type = "track,artist"; // Search for both tracks and artists
       const type = "track"; // Search for only tracks
-      const limit = 5; // Limit to 5 results
+      const limit = 10; // Limit to 5 results
 
       // console.log("vi är inne i searchSpotify")
       try {
@@ -332,13 +332,16 @@ export default {
         // Extracting track information
         const tracks = data.tracks.items; // Get the array of track items
 
-        const extractedTracks = tracks.map(track => ({
+        // TODO: Let the DJ choose the minimum popularity score
+        // Filter out the tracks with a popularity score less than 55
+        const filteredTracks = tracks.filter(track => track.popularity >= 55);
+
+        const extractedTracks = filteredTracks.map(track => ({
           name: track.name, // Track name
           // artists: track.artists.map(artist => artist.name).join(', '), // Join artist names
           artists: track.artists,
           spotify_id: track.id, // Spotify ID
         }));
-        // console.log("vi är på rad 173")
         // Get the top 5 tracks
         const topTracks = extractedTracks.slice(0, 5); // Limit to top 5 tracks
 
