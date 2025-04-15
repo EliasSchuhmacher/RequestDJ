@@ -4,7 +4,12 @@
     <div class="col-10 col-md-5 py-5 px-3 px-md-5 shadow bg-secondary-custom rounded">
       <div class="row pb-3 mt-4">
         <div class="col d-flex justify-content-center">
-          <h1>DJ Login</h1>
+          <h1>Login</h1>
+        </div>
+      </div>
+      <div class="row pb-1">
+        <div class="col d-flex justify-content-center">
+          <p>Enter your details to start accepting song requests!</p>
         </div>
       </div>
       <div v-if="msg !== ''" class="alert alert-danger">
