@@ -183,13 +183,12 @@ export default {
     this.debouncedSearch = this.debounce(this.searchSpotify, 300);
 
     // Check if the user has made a request recently, and update the countdown timer
-    this.updateTimer();
+    this.resumeCooldownIfActive();
 
-    // Check if the user has already made a request
     const sentSongRequestId = localStorage.getItem("sentSongRequestId");
     if (sentSongRequestId) {
       this.sentSongRequestId = sentSongRequestId;
-      this.fetchSongRequestStatus(this.sentSongRequestId); // Fetch the status of the previous request
+      this.fetchSongRequestStatus(this.sentSongRequestId);
     }
   },
   
@@ -229,40 +228,50 @@ export default {
     // Handle the window focus event, updating the song request status and timer
     handleWindowFocus() {
       console.log("Window focused");
+
+      // Update the timer
+      this.resumeCooldownIfActive();
+
       if (this.requestSent && this.sentSongRequestId) {
-        this.updateTimer(); // Call updateTimer
-        console.log("window focused, fetching song request status");
-        this.fetchSongRequestStatus(this.sentSongRequestId); // Call fetchSongRequestStatus with the song request ID
+        this.fetchSongRequestStatus(this.sentSongRequestId);
       }
     },
 
-    // Check if the user has already made a request and update the count
-    updateTimer() {
-      // This is triggered when the page is refreshed
+    // Called on created / window focus
+    resumeCooldownIfActive() {
       const lastRequestTime = localStorage.getItem("lastRequestTime");
-      if (lastRequestTime) {
-        const currentTime = new Date().getTime();
-        const timeElapsed = currentTime - lastRequestTime;
-        if (timeElapsed < this.timeoutLength) {
-          this.requestSent = true;
-          this.requestAnotherSongDisabled = true;
-          this.countdown = this.timeoutLength - timeElapsed;
-          // Set requestAnotherSongDisabled to false after the remaining time
-          // Clear any existing countdown interval
-          if (this.countdownInterval) {
-            clearInterval(this.countdownInterval);
-          }
-          // And also setup the countdown timer
-          this.countdownInterval= setInterval(() => {
-            if (this.countdown > 1000) {
-              this.countdown -= 1000;
-            } else {
-              this.requestAnotherSongDisabled = false;
-              clearInterval(this.countdownInterval);
-            }
-          }, 1000);
-        }
+      if (!lastRequestTime) return;
+
+      const elapsed = Date.now() - lastRequestTime;
+      const remaining = this.timeoutLength - elapsed;
+
+      if (remaining > 0) {
+        this.requestSent = true;
+        this.requestAnotherSongDisabled = true;
+        this.runCountdown(remaining);
+      } else {
+        this.requestSent = false;
+        this.requestAnotherSongDisabled = false;
       }
+    },
+
+    // Ticking countdown
+    runCountdown(duration) {
+      this.countdown = duration;
+
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+      }
+
+      this.countdownInterval = setInterval(() => {
+        if (this.countdown > 1000) {
+          this.countdown -= 1000;
+        } else {
+          this.countdown = 0;
+          this.requestAnotherSongDisabled = false;
+          clearInterval(this.countdownInterval);
+        }
+      }, 1000);
     },
 
     // if they choose one of the suggestions submit
@@ -333,8 +342,8 @@ export default {
         const tracks = data.tracks.items; // Get the array of track items
 
         // TODO: Let the DJ choose the minimum popularity score
-        // Filter out the tracks with a popularity score less than 55
-        const filteredTracks = tracks.filter(track => track.popularity >= 55);
+        // Filter out the tracks with a popularity score less than 50
+        const filteredTracks = tracks.filter(track => track.popularity >= 50);
 
         const extractedTracks = filteredTracks.map(track => ({
           name: track.name, // Track name
@@ -407,18 +416,12 @@ export default {
       }
 
       // Disable the request button and start the countdown
-      this.requestAnotherSongDisabled = true;
-      this.countdown = this.timeoutLength;
-      this.countdownInterval = setInterval(() => {
-        if (this.countdown > 0) {
-          this.countdown -= 1000;
-        } else {
-          this.requestAnotherSongDisabled = false;
-          clearInterval(this.countdownInterval);
-        }
-      }, 1000);
-
+      const now = Date.now();
+      localStorage.setItem("lastRequestTime", now);
       this.requestSent = true;
+      this.requestAnotherSongDisabled = true;
+      this.runCountdown(this.timeoutLength);
+
       this.$store.commit("setSongRequestResponse", "");
 
       // Send the booking to server via AJAX-post request

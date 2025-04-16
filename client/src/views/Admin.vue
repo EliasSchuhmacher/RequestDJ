@@ -268,22 +268,31 @@ export default {
       setTimeout(() => this.submitPlaying(id), timeDelay);
     },
     submitComingUp(id) {
-      this.updateStatus(id, 'coming_up');
-      this.$store.commit("moveSongRequestToTop", id);
-
       fetch("/api/comingup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
-      }).then((response) => response.json())
+      })
+        .then((response) => response.json())
         .then((data) => {
           if (!data.songQueued) {
+            if (data.reason === "NO_ACTIVE_DEVICE") {
+              console.warn("No active Spotify device:", data.message);
+              this.spotifyErrorMessage = "Please start playing music in Spotify to queue songs.";
+              return;
+            }
+
+            // For all other failure reasons, proceed with UI/store update anyway
             console.warn("Spotify queuing failed:", data.message);
-            this.spotifyErrorMessage = `Error when queueing song: ${data.message}`; // Display the error message to the user
-            return;
+            this.spotifyErrorMessage = `Warning: ${data.message}`;
           }
-          console.log("Song successfully queued in Spotify.");
-          // Fetch the new Spotify queue after a short delay
+
+          // Mark as accepted in the store & UI regardless of Spotify queue result,
+          // unless NO_ACTIVE_DEVICE
+          this.updateStatus(id, 'coming_up');
+          this.$store.commit("moveSongRequestToTop", id);
+
+          // Optionally refresh the Spotify queue
           setTimeout(() => this.getSpotifyQueue(), 250);
         })
         .catch((error) => {

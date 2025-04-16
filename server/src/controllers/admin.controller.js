@@ -195,6 +195,37 @@ router.get("/spotifycallback", async (req, res) => {
 
 });
 
+// Helper function to notify the requester of the song status
+function notifyRequesterOfStatus(song, status) {
+  sessionStore.get(song.requester_session_id, (err, session) => {
+    if (err) {
+      console.log("Error retrieving requester session from sessionStore");
+      console.error(err);
+      return;
+    }
+
+    if (session?.socketID) {
+      const {socketID} = session;
+
+      switch (status) {
+        case "coming_up":
+          Model.alertSongRequestComingUp(socketID);
+          break;
+        case "playing":
+          Model.alertSongRequestPlaying(socketID);
+          break;
+        case "rejected":
+          Model.alertSongRequestRejected(socketID);
+          break;
+        default:
+          console.warn(`Unknown status "${status}" in notifyRequesterOfStatus`);
+      }
+    } else {
+      console.log("Requester session not found, requester not alerted");
+    }
+  });
+}
+
 // Mark a song request as played:
 router.post("/playsong", async (req, res) => {
   const { id } = req.body;
@@ -226,27 +257,10 @@ router.post("/playsong", async (req, res) => {
     "DELETE FROM songrequests WHERE id=$1",
     [id]
   );
-  // Retrieve websocket id of requester
-  sessionStore.get(song.requester_session_id, (err, session) => {
-    if (err) {
-      console.log("Error retrieving requester session from sessionStore");
-      console.error(err);
-      res.status(200).send();
-      return;
-    }
 
-    if (session && session.socketID) {
-      const requesterWebsocketId = session.socketID;
-      // Alert the requester of the song that it has been played:
-      Model.alertSongRequestPlayed(requesterWebsocketId);
-    } else {
-      // Requester session not found
-      console.log("Requester session not found, requester not alerted");
-    }
-    
-    res.status(200).send();
-
-  });
+  // Notify requester of status
+  notifyRequesterOfStatus(song, "playing");
+  res.status(200).send();
 });
 
 // Mark a song as "coming up": (This is now used to queue a song in Spotify)
@@ -254,123 +268,93 @@ router.post("/comingup", async (req, res) => {
   const { id } = req.body;
   console.log("Coming up called for id:", id);
 
-  const result = await db.query(
-    "SELECT * FROM songrequests WHERE id=$1",
-    [id]
-  );
+  const result = await db.query("SELECT * FROM songrequests WHERE id=$1", [id]);
   const song = result.rows[0];
 
-  // Check that song exists
   if (!song) {
-    // Ogiltigt id, skicka 404
     res.status(404).send();
     return;
   }
 
-  // console.log(song);
-  // Säkertställ att användaren är inloggad som den användare vars song den försöker markera:
   if (song.dj_username !== req.session.user) {
-    // Försöker markera någon annans song!
     res.status(401).send();
     return;
   }
 
-  console.log("Now setting the status to coming_up for song with id:", id);
-  // Update the song request status to "coming_up":
-  db.query(
-    "UPDATE songrequests SET status='coming_up' WHERE id=$1",
-    [id]
-  );
-
-  // Retrieve websocket id of requestert in order to alert them
-  sessionStore.get(song.requester_session_id, (err, session) => {
-    if (err) {
-      console.log("Error retrieving requester session from sessionStore");
-      console.error(err);
-      return;
-    }
-
-    if (session && session.socketID) {
-      const requesterWebsocketId = session.socketID;
-      // Alert the requester of the song that it is coming up:
-      Model.alertSongRequestComingUp(requesterWebsocketId);
-    } else {
-      // Requester session not found
-      console.log("Requester session not found, requester not alerted");
-    }
-  });
-
-  // Queue the song in Spotify using a POST request to /me/player/queue
-  // Get the users spotify access token
+  // Get user's Spotify access token
   const res2 = await db.query(
     "SELECT spotify_access_token FROM users WHERE name=$1",
     [req.session.user]
   );
   let spotifyAccessToken = res2.rows[0]?.spotify_access_token;
 
-  // User has not connected to spotify
   if (!spotifyAccessToken) {
-    res.status(200).json({songQueued: false, message: "User has not connected to Spotify.    Please queue the song manually: " + song.song_title});
+    res.status(200).json({ songQueued: false, message: "User has not connected to Spotify. Please queue the song manually: " + song.song_title });
     return;
   }
 
-  // If the song doesn't have a spotify id
   if (!song.song_spotify_id) {
     console.error("Song does not have a Spotify ID");
-    res.status(200).json({songQueued: false, message: "The song does not have a Spotify ID and cannot be queued in Spotify.    Please queue the song manually: " + song.song_title});
+    res.status(200).json({ songQueued: false, message: "The song does not have a Spotify ID and cannot be queued in Spotify. Please queue the song manually: " + song.song_title });
     return;
   }
 
-  // Queue the song in Spotify
-  try {
-    const uri = `spotify:track:${song.song_spotify_id}`;
-    const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
+  // Try to queue the song
+  const uri = `spotify:track:${song.song_spotify_id}`;
+  const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
+
+  const tryQueue = async (accessToken) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${spotifyAccessToken}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
     });
 
-    // Error handling of failed request:
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Failed to queue song in Spotify:', errorData);
-      // if the error is 401, the access token is has expired and needs to be refreshed
+
       if (response.status === 401) {
-        console.log('Access token has expired, refreshing token...');
-        spotifyAccessToken = await refreshSpotifyAccessToken(req.session.user);
-        const newResponse = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${spotifyAccessToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!newResponse.ok) {
-          const newErrorData = await newResponse.json();
-          console.error('Failed to queue song in Spotify after refreshing token:', newErrorData);
-          res.status(200).json({songQueued: false, message: newErrorData.error.message + ".    Please queue the song manually: " + song.song_title});
-          return;
-        }
-        console.log('Song queued successfully in Spotify after refreshing token');
-        res.status(200).json({songQueued: true});
-        return;
+        // Token expired, try refreshing
+        console.log('Access token expired, refreshing...');
+        const newToken = await refreshSpotifyAccessToken(req.session.user);
+        return tryQueue(newToken);
       }
-      res.status(200).json({songQueued: false, message: errorData.error.message + ".    Please queue the song manually: " + song.song_title});
+
+      // Special case: No active device
+      if (response.status === 404 && errorData.error.reason === "NO_ACTIVE_DEVICE") {
+        return { success: false, reason: "NO_ACTIVE_DEVICE", message: errorData.error.message };
+      }
+
+      return { success: false, message: errorData.error.message };
+    }
+
+    return { success: true };
+  };
+
+  const queueResult = await tryQueue(spotifyAccessToken);
+
+  if (!queueResult.success) {
+    if (queueResult.reason === "NO_ACTIVE_DEVICE") {
+      res.status(200).json({ songQueued: false, reason: "NO_ACTIVE_DEVICE", message: "No active Spotify device found. Start playing music in Spotify and try again." });
       return;
     }
 
-    console.log('Song queued successfully in Spotify');
-  } catch (error) {
-    console.error('Error occurred while queuing song in Spotify:', error);
-    res.status(200).json({songQueued: false, message: error.message + ".    Please queue the song manually: " + song.song_title});
+    // For other errors, still mark the song as coming_up
+    await db.query("UPDATE songrequests SET status='coming_up' WHERE id=$1", [id]);
+
+    // Notify requester anyway
+    notifyRequesterOfStatus(song, "coming_up");
+    res.status(200).json({ songQueued: false, message: queueResult.message + ". Please queue manually: " + song.song_title });
     return;
   }
 
-  res.status(200).json({songQueued: true});
-
+  // Success: update status and notify
+  await db.query("UPDATE songrequests SET status='coming_up' WHERE id=$1", [id]);
+  notifyRequesterOfStatus(song, "coming_up");
+  res.status(200).json({ songQueued: true });
 });
 
 // Remove/Reject a song request:
@@ -406,25 +390,8 @@ router.post("/removesong", async (req, res) => {
   );
   
   // Retrieve websocket id of requester in order to alert them
-  sessionStore.get(song.requester_session_id, (err, session) => {
-    if (err) {
-      console.log("Error retrieving requester session from sessionStore");
-      console.error(err);
-      res.status(200).send();
-      return;
-    }
-
-    if (session && session.socketID) {
-      const requesterWebsocketId = session.socketID;
-      // Alert the requester of the song that it has been rejected:
-      Model.alertSongRequestRejected(requesterWebsocketId);
-    } else {
-      // Requester session not found
-      console.log("Requester session not found, requester not alerted");
-    }
-
-    res.status(200).send();
-  });
+  notifyRequesterOfStatus(song, "rejected");
+  res.status(200).send();
 
 });
 
