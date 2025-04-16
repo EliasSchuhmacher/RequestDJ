@@ -194,7 +194,7 @@ export default {
       })
         .then((res) => {
           if (!res.ok) {
-            return res.json().then((errorData) => {
+            return res.text().then((errorData) => {
               throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
             });
           }
