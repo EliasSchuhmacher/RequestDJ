@@ -192,14 +192,19 @@ export default {
       fetch(`/api/spotifyqueue/${this.$store.state.username}`, {
         method: "GET",
       })
-        .then((res) => {
-          if (!res.ok) {
-            return res.text().then((errorData) => {
-              throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
-            });
-          }
-          return res.json();
-        })
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((errorData) => {
+            const error = errorData.error || `HTTP error! status: ${res.status}`;
+            // Only set spotifyConnected to false for auth-related errors
+            if (res.status === 401 || res.status === 403) {
+              this.$store.commit("setSpotifyConnected", false);
+            }
+            throw new Error(error);
+          });
+        }
+        return res.json();
+      })
         .then((data) => {
           console.log("Spotify Queue: ", data);
           // Commit to store
@@ -228,8 +233,7 @@ export default {
         .catch((err) => {
           console.error("Failed to fetch Spotify queue:", err);
           this.spotifyErrorMessage = err.message || "Failed to fetch Spotify queue";
-          // Commit to store that the user is no longer connected to Spotify
-          this.$store.commit("setSpotifyConnected", false);
+          // Don't assume disconnection here — handled above based on status code
         });
     },
     startPolling() {
