@@ -228,10 +228,10 @@ export default {
     // Handle the window focus event, updating the song request status and timer
     handleWindowFocus() {
       console.log("Window focused");
-
+      
       // Update the timer
       this.resumeCooldownIfActive();
-
+      this.fetchSpotifyQueue();
       if (this.requestSent && this.sentSongRequestId) {
         this.fetchSongRequestStatus(this.sentSongRequestId);
       }
@@ -343,7 +343,7 @@ export default {
 
         // TODO: Let the DJ choose the minimum popularity score
         // Filter out the tracks with a popularity score less than 50
-        const filteredTracks = tracks.filter(track => track.popularity >= 50);
+        const filteredTracks = tracks.filter(track => track.popularity >= 20);
 
         const extractedTracks = filteredTracks.map(track => ({
           name: track.name, // Track name
@@ -397,16 +397,16 @@ export default {
 
     sendRequest() {
       // Check that a title is supplied.
-      if (this.song_title === "" && this.song_artist === "") {
-        console.log("Both fields are empty");
-        this.errorMessage = "Please fill in at least one of the fields";
+      if (this.song_title === "") {
+        console.log("no requested song");
+        this.errorMessage = "Please fill in a song title and artist";
         return;
       }
 
       // Reset the error message
       this.errorMessage = "";
     
-      // Check if the user has made a request in the last 30 minutes
+      // Check if the user has made a request in the last x minutes
       const lastRequestTime = localStorage.getItem("lastRequestTime");
       const currentTime = new Date().getTime();
       if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
