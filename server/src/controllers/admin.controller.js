@@ -296,6 +296,8 @@ router.post("/comingup", async (req, res) => {
   if (!song.song_spotify_id) {
     console.error("Song does not have a Spotify ID");
     res.status(200).json({ songQueued: false, message: "The song does not have a Spotify ID and cannot be queued in Spotify. Please queue the song manually: " + song.song_title });
+    await db.query("UPDATE songrequests SET status='coming_up' WHERE id=$1", [id]);
+
     return;
   }
 
