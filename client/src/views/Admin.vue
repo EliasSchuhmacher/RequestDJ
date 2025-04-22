@@ -213,6 +213,7 @@ export default {
               song_title: song.name,
               song_artist: song.artists?.map((artist) => artist.name).join(", ") || "",
               song_spotify_id: song.id,
+              song_image_url: song.album?.images.at(-1)?.url || "",
             }));
             this.$store.commit("setSpotifyQueue", queue);
           } else {
@@ -225,6 +226,7 @@ export default {
               song_title: name,
               song_artist: artists?.map((artist) => artist.name).join(", ") || "",
               song_spotify_id: id,
+              song_image_url: data.spotifyQueue.currently_playing.album?.images.at(-1)?.url || "",
             });
           } else {
             this.$store.commit("setCurrentlyPlaying", undefined);

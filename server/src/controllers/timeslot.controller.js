@@ -142,7 +142,7 @@ router.post("/songs", async (req, res) => {
   console.log("✅ Received POST /api/songs");
 
   // song genre and requester_name defaults to empty string, if not provided
-  const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '' } = req.body; 
+  const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '', song_image_url = '' } = req.body; 
 
   // Make sure DJ_name, song_name or artist are supplied in request
   if (!DJ_name || (!song_title && !song_artist)) {
@@ -164,8 +164,8 @@ router.post("/songs", async (req, res) => {
 
   // Insert song request into database
   const insertResult = await db.query(
-    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;",
-    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id]
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;",
+    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url]
   );
 
   const newId = insertResult.rows[0].id;
@@ -177,7 +177,7 @@ router.post("/songs", async (req, res) => {
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
   const result = await db.query(
-    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id FROM songrequests WHERE id = $1;",
+    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url FROM songrequests WHERE id = $1;",
     [newId]
   );
   const songRequest = result.rows[0];

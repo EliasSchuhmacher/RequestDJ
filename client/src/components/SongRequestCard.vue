@@ -2,15 +2,30 @@
 <template>
   <div
     :class="['card my-2 shadow rounded bg-tertiary-custom', 
-    { shimmer: status === 'coming_up', loading: status === 'playing'  }]"
+    { shimmer: status === 'coming_up', loading: status === 'playing' }]"
   >
-    <div class="px-3 mt-2 d-flex justify-content-between align-items-center">
-      <div v-if="songRequest.song_title" class="d-flex align-items-center w-100">
-        <i class="fas text-dark fa-music me-3"></i>
+    <div class="px-2 my-2 d-flex align-items-center">
+      <!-- Album Image -->
+      <div class="me-2">
+        <img 
+          v-if="songRequest.song_image_url" 
+          :src="songRequest.song_image_url" 
+          :class="['img rounded', incoming ? 'album-image-large' : 'album-image']"
+          alt="Album cover"
+        >
+        <div 
+          v-else 
+          :class="['d-flex align-items-center justify-content-center', incoming ? 'album-image-placeholder-large' : 'album-image-placeholder']"
+        > 
+          <i class="fas fa-music"></i>
+        </div>
+      </div>
+
+      <!-- Song Title and Artist -->
+      <div class="d-flex flex-column w-100">
         <span
           v-if="songRequest.song_spotify_id"
-          class="overflow-hidden small"
-          :class="{ clickable: songRequest.song_spotify_id }"
+          class="small clickable overflow-hidden"
           data-bs-toggle="tooltip"
           title="Click to open in Spotify"
           @click="openSpotifyLink(songRequest.song_spotify_id)" 
@@ -18,33 +33,26 @@
         >
           <strong>{{ songRequest.song_title }}</strong>
         </span>
-        <span v-else class="overflow-hidden small">
+        <span v-else class="small overflow-hidden">
           <strong>{{ songRequest.song_title }}</strong>
+        </span>
+        <span v-if="songRequest.song_artist" class="small">
+          {{ songRequest.song_artist }}
+        </span>
+        <span v-if="songRequest.song_genre" class="small">
+          {{ songRequest.song_genre }}
+        </span>
+        <span v-if="songRequest.requester_name" class="small">
+          <strong>Requested by: </strong>{{ songRequest.requester_name }}
         </span>
       </div>
     </div>
-    <div v-if="songRequest.song_artist" class="px-3 mt-1 mb-2 d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center w-100">
-        <i class="fas text-dark fa-user me-3 icon-size"></i>
-        <span class="overflow-hidden text-nowrap small">{{ songRequest.song_artist }}</span>
-      </div>
-    </div>
-    <div v-if="songRequest.song_genre" class="px-3 mt-1 d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center w-100">
-        <i class="fas text-dark fa-compact-disc me-3 icon-size"></i>
-        <span class="overflow-hidden text-nowrap small"><strong>Genres:</strong> <i>{{ songRequest.song_genre }}</i></span>
-      </div>
-    </div>
-    <div v-if="songRequest.requester_name" class="px-3 mt-1 d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center w-100">
-        <i class="fas text-dark fa-user-alt me-3 icon-size"></i>
-        <span class="overflow-hidden text-nowrap small"><strong>Requested by:</strong> {{ songRequest.requester_name }}</span>
-      </div>
-    </div>
-    <div v-if="incoming" class="btn-group d-flex w-100 mt-2 border-top border-secondary" role="group">
+
+    <!-- Buttons -->
+    <div v-if="incoming" class="btn-group d-flex w-100 border-top border-secondary" role="group">
       <button
         type="button"
-        class="btn text-secondary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
+        class="btn btn-outline-secondary border-0 text-secondary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
         @click="$emit('submit-comingup', songRequest.id)"
       >
         <i class="fas mt-1 fa-check"></i>
@@ -52,23 +60,13 @@
       </button>
       <button
         type="button"
-        class="btn text-primary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
+        class="btn btn-outline-secondary border-0 text-primary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
         @click="$emit('submit-remove', songRequest.id)"
       >
         <i class="fas mt-1 fa-times"></i>
         <span class="px-0 small mt-auto">Reject</span>
       </button>
     </div>
-    <!-- <div v-else class="btn-group d-flex w-100 mt-2 border-top border-secondary" role="group">
-      <button
-        type="button"
-        class="btn text-secondary-custom bg-tertiary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-        @click="$emit('set-playing', songRequest.id)"
-      >
-        <i :class="status === 'playing' ? 'fas mt-1 fa-check' : 'fas mt-1 fa-play'"></i>
-        <span class="px-0 small mt-auto">Mark as played</span>
-      </button>
-    </div> -->
   </div>
 </template>
   
@@ -142,6 +140,28 @@ import { Tooltip } from 'bootstrap';
   animation: loading 2.5s forwards;
   background: linear-gradient(to right, #6b6b6b 50%, #535353 50%);
   background-size: 200% 100%;
+}
+
+.album-image {
+  width: 48px; /* Fixed width */
+  height: 48px; /* Fixed height */
+  object-fit: cover; /* Ensures the image scales properly without distortion */
+}
+
+.album-image-large {
+  width: 64px; /* Larger size for incoming status */
+  height: 64px;
+  object-fit: cover;
+}
+
+.album-image-placeholder {
+  width: 48px;
+  height: 48px;
+}
+
+.album-image-placeholder-large {
+  width: 64px;
+  height: 64px;
 }
 
 @keyframes shimmer {

@@ -140,6 +140,7 @@ export default {
     song_title: "",
     song_genre: "",
     song_spotify_id: "",
+    song_image_url: "",
     requester_name: "",
     // song_artist: "",
     suggestions: [], // Initialize as an empty array
@@ -279,6 +280,7 @@ export default {
       // Set the input value to the selected suggestion
       this.song_title = `${suggestion.name} by ${suggestion.artists.map(artist => artist.name).join(', ')}`;
       this.song_spotify_id = suggestion.spotify_id;
+      this.song_image_url = suggestion.spotify_image_url;
 
       // Fetch the genre of the first artist of the selected song
       // Potential problem: the user might send the request before the genre is finished fetching
@@ -350,6 +352,7 @@ export default {
           // artists: track.artists.map(artist => artist.name).join(', '), // Join artist names
           artists: track.artists,
           spotify_id: track.id, // Spotify ID
+          spotify_image_url: track.album.images[0]?.url || '', // Image URL
         }));
         // Get the top 5 tracks
         const topTracks = extractedTracks.slice(0, 5); // Limit to top 5 tracks
@@ -380,6 +383,7 @@ export default {
             song_title: song.name,
             song_artist: song.artists.map((artist) => artist.name).join(", "),
             song_spotify_id: song.id,
+            song_image_url: song.album.images.at(-1)?.url || "",
           }));
           this.spotifyQueue = queue;
           const { name, id, artists } = data.spotifyQueue.currently_playing;
@@ -387,6 +391,7 @@ export default {
             song_title: name,
             song_artist: artists.map((artist) => artist.name).join(", "),
             song_spotify_id: id,
+            song_image_url: data.spotifyQueue.currently_playing.album.images.at(-1)?.url || "",
           };
         })
         .catch((err) => {
@@ -436,6 +441,7 @@ export default {
           DJ_name: this.DJ_name,
           requester_name: this.requester_name,
           song_genre: this.song_genre,
+          song_image_url: this.song_image_url,
         }),
       })
       .then(response => {
