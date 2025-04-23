@@ -177,8 +177,18 @@ export default {
         })
         .catch((err) => {
           console.error("Error disconnecting from Spotify:", err);
-          this.spotifyErrorMessage = "An error occurred while disconnecting from Spotify." + err.message;
+          this.spotifyErrorMessage = `An error occurred while disconnecting from Spotify. ${err.message}`;
         });
+    },
+    handleLoggedOutResponse(){
+      // Handle the response when the user is logged out and redirect to login
+      this.$store.commit("setAuthenticated", false);
+      this.$store.commit("setUsername", "");
+      this.$store.commit("setSongRequests", []);
+      this.$store.commit("setSpotifyQueue", []);
+      this.$store.commit("setCurrentlyPlaying", {});
+      this.$store.commit("setSpotifyConnected", false);
+      this.$router.push("/login");
     },
     getSpotifyQueue() {
       // Check if the user is connected to Spotify
@@ -192,19 +202,29 @@ export default {
       fetch(`/api/spotifyqueue/${this.$store.state.username}`, {
         method: "GET",
       })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((errorData) => {
-            const error = errorData.error || `HTTP error! status: ${res.status}`;
-            // Only set spotifyConnected to false for auth-related errors
-            if (res.status === 401 || res.status === 403) {
-              this.$store.commit("setSpotifyConnected", false);
-            }
-            throw new Error(error);
-          });
-        }
-        return res.json();
-      })
+        .then((res) => {
+          if (!res.ok) {
+            return res.json().then((errorData) => {
+              const error = errorData.message || `HTTP error! status: ${res.status}`;
+
+              console.log(errorData);
+              // Handle 401 Unauthorized with redirect to login
+              if (res.status === 401 && errorData.redirect === "login") {
+                console.info("Session expired or user not logged in. Redirecting to login...");
+                this.handleLoggedOutResponse(); // Redirect to login
+                return;
+              }
+
+              // Handle other auth-related errors
+              if (res.status === 401 || res.status === 403) {
+                this.$store.commit("setSpotifyConnected", false);
+              }
+
+              throw new Error(error);
+            });
+          }
+          return res.json();
+        })
         .then((data) => {
           console.log("Spotify Queue: ", data);
           // Commit to store

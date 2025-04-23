@@ -245,10 +245,10 @@ router.get("/spotifyqueue/:username", async (req, res) => {
   //   return;
   // }
   
-  // Check if the target user is logged in
+   // Check if the target user is logged in
   const session = await getSessionForUser(username);
   if (!session) {
-    res.status(401).send('Unauthorized: Target user is not logged in');
+    res.status(401).json({ message: "Unauthorized: Target user is not logged in", redirect: "login" });
     return;
   }
 
