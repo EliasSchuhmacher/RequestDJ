@@ -8,7 +8,7 @@
         </div>
       </div>
       <div class="row pb-1">
-        <div class="col d-flex justify-content-center">
+        <div class="col d-flex justify-content-center mx-2">
           <p>Enter your details to start accepting song requests!</p>
         </div>
       </div>
