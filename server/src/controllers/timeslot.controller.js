@@ -102,6 +102,23 @@ const refreshSpotifyAccessToken = async (username) => {
   
 };
 
+// Helper function to get the session for a user
+async function getSessionForUser(username) {
+  return new Promise((resolve, reject) => {
+    sessionStore.db.all('SELECT * FROM sessions', (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      const userSession = rows.find(row => {
+        const sessionData = JSON.parse(row.sess);
+        return sessionData.user === username;
+      });
+      resolve(userSession);
+    });
+  });
+}
+
 router.get("/spotify/token", async (req, res) => {
   // console.log("we are in the spotify/token function")
   try {
@@ -116,25 +133,49 @@ router.get("/spotify/token", async (req, res) => {
   }
 });
 
-router.post("/check_dj_exist", async (req, res) => {
-  const DJ_name = req.body.djName.trim();
+// Check if a DJ is logged in and exists
+router.post("/check_dj_status", async (req, res) => {
+  const DJ_name = req.body.DJ_name.trim();
+
+  console.log("Checking DJ status for DJ_name: ", DJ_name);
+
+  if (!DJ_name) {
+    // Invalid request, send response code 400;
+    res.status(404).json({ message: "Invalid request: DJ name is required" });
+    return;
+  }
+
+  // Step 1: Check if the DJ has a valid session
+  const session = await getSessionForUser(DJ_name);
+  if (session) {
+    // Make sure the session has not expired
+    const currentTime = Date.now();
+    const sessionExpirationTime = new Date(session.expires).getTime(); // Convert ISO string to timestamp
+    if (currentTime > sessionExpirationTime) {
+      res.status(401).json({ message: "Unauthorized: Session has expired" });
+      return;
+    }
+
+    // DJ is logged in and session is valid
+    res.status(200).send();
+    return;
+  }
+
+  // Step 2: If no session exists, check if the DJ exists in the database
   const result = await db.query(
     "SELECT name FROM users WHERE name = $1",
     [DJ_name]
   );
   const existingUser = result.rows[0];
-  
-  console.log(existingUser)
-  console.log("vi är i check_dj_exist, efter existingUser")
-  // const allDJs = await db.all("SELECT name FROM assistants");  
-  // Log all DJs to the console for debugging
-  
-  if (existingUser) {
-    // User already exist
-    res.status(200).send();
-  } else {
-    res.status(404).json({ message: "Dj not found" });
+
+  if (!existingUser) {
+    // DJ does not exist
+    res.status(404).json({ message: "DJ not found" });
+    return;
   }
+
+  // DJ exists but is not logged in
+  res.status(401).json({ message: "Unauthorized: DJ is not logged in" });
 });
 
 // Add a song request for a specific user:
@@ -187,23 +228,6 @@ router.post("/songs", async (req, res) => {
   Model.broadcastNewSongRequest(songRequest);
 
 });
-
-// Helper function to get the session for a user
-async function getSessionForUser(username) {
-  return new Promise((resolve, reject) => {
-    sessionStore.db.all('SELECT * FROM sessions', (err, rows) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      const userSession = rows.find(row => {
-        const sessionData = JSON.parse(row.sess);
-        return sessionData.user === username;
-      });
-      resolve(userSession);
-    });
-  });
-}
 
 // Create an endpoint for retrieving a users spotify queue
 router.get("/spotifyqueue/:username", async (req, res) => {

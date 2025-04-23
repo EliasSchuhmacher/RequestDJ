@@ -1,9 +1,11 @@
+/* eslint-disable camelcase */
 import { createRouter, createWebHistory } from "vue-router";
 import store from "../store";
 import Login from "../views/Login.vue";
 import Admin from "../views/Admin.vue";
 import SignupForm from "../views/SignupForm.vue";
 import RequestSong from "../views/RequestSong.vue";
+import NotAcceptingRequests from "../views/NotAcceptingRequests.vue";
 
 const routes = [
   {
@@ -23,7 +25,12 @@ const routes = [
     component: Admin,
   },
   {
+    path: "/NotAcceptingRequests",
+    component: NotAcceptingRequests,
+  },
+  {
     path: "/requestsong/:DJ_name",
+    name: "RequestSong", // Add a name to the route
     component: RequestSong,
     props: true,
   }
@@ -41,6 +48,43 @@ router.beforeEach(async (to, from, next) => {
     next("/login");
     return;
   } 
+
+  // Check if the DJ is logged in
+  if (to.name === "RequestSong" && to.params.DJ_name) {
+    const { DJ_name } = to.params;
+    try {
+      const response = await fetch(`/api/check_dj_status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ DJ_name }),
+      });
+
+      if (response.ok) {
+        next(); // DJ is logged in, proceed to the route
+        return;
+      }
+
+      if (response.status === 401) {
+        console.info(`DJ ${DJ_name} is not logged in or session has expired.`);
+        next("/NotAcceptingRequests"); // Redirect to "Not Accepting Requests"
+        return;
+      }
+
+      if (response.status === 404) {
+        console.info(`DJ ${DJ_name} not found.`);
+        next("/NotFound"); // Redirect to "Not Found"
+        return;
+      }
+
+      // Handle other unexpected statuses
+      console.error(`Unexpected response status: ${response.status}`);
+      next("/NotAcceptingRequests"); // Redirect to a fallback route
+    } catch (error) {
+      console.error("Error occurred while checking DJ status:", error);
+      next("/NotAcceptingRequests"); // Redirect to a fallback route in case of a network error
+    }
+    return;
+  }
   
   // Handle DJ existence check for "/requestsong/:DJ_name"
   // if (to.path.startsWith("/requestsong/")) {

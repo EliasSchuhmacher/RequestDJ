@@ -61,7 +61,7 @@ export default {
   computed: {
     showNavbar() {
       // Hide the navbar on routes that start with '/requestsong/'
-      return !/^\/requestsong\/.+/.test(this.$route.path);
+      return !/^\/(requestsong\/.+|NotAcceptingRequests)/.test(this.$route.path);
     },
   },
   mounted() {
