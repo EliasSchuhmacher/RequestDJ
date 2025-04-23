@@ -17,7 +17,7 @@
           v-else 
           :class="['d-flex align-items-center justify-content-center', incoming ? 'album-image-placeholder-large' : 'album-image-placeholder']"
         > 
-          <i class="fas fa-music"></i>
+          <!-- <i class="fas fa-music"></i> -->
         </div>
       </div>
 
@@ -156,12 +156,12 @@ import { Tooltip } from 'bootstrap';
 
 .album-image-placeholder {
   width: 48px;
-  height: 48px;
+  /* height: 48px; */
 }
 
 .album-image-placeholder-large {
   width: 64px;
-  height: 64px;
+  /* height: 64px; */
 }
 
 @keyframes shimmer {
