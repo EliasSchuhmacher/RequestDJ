@@ -1,9 +1,9 @@
 import e, { json, Router } from "express";
+import { v4 as uuidv4 } from 'uuid';
 import Model from "../model.js";
 import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
 import { refreshSpotifyAccessToken } from './timeslot.controller.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 

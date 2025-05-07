@@ -154,7 +154,7 @@ export default {
     countdownInterval: null,
     requestAnotherSongDisabled: false,
     // timeoutLength: 3 * 60 * 1000,
-    timeoutLength: 2 * 60 * 1000,
+    timeoutLength: 1 * 60 * 1000,
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),
