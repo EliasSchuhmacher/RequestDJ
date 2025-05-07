@@ -38,9 +38,9 @@
     </div>
     <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
-        <span v-if="$store.state.currentlyPlaying" class="d-block mt-1 text-muted small">Currently Playing:</span>
+        <span v-if="$store.state.currentlyPlaying && $store.state.spotifyConnected" class="d-block mt-1 text-muted small">Currently Playing:</span>
         <SongRequestCard
-        v-if="$store.state.currentlyPlaying"
+        v-if="$store.state.currentlyPlaying && $store.state.spotifyConnected"
         :key="$store.state.currentlyPlaying.id"
         :song-request="$store.state.currentlyPlaying"
         :status="'coming_up'"
@@ -125,12 +125,12 @@ export default {
   },
   async mounted() {
     const { commit } = this.$store;
-    const res = await fetch(`/api/songs/${this.$store.state.username}`);
-    const { songRequests } = await res.json();
 
-    // Update the store with the fetched songRequests
-    commit("setSongRequests", songRequests);
-    commit("sortSongRequests");
+    // Fetch the song requests from the server
+    this.fetchSongRequests();
+
+    // Add event listener on window focus
+    window.addEventListener("focus", this.handleWindowFocus); // Re-fetches song requests when the window is focused
 
     // Check if the user has connected to Spotify
     const spotifyRes = await fetch(`/api/checkspotifyconnected`);
@@ -145,6 +145,7 @@ export default {
   },
   beforeUnmount() {
     this.stopPolling();
+    window.removeEventListener("focus", this.handleWindowFocus); // Clean up event listener
   },
   methods: {
     prevent() {
@@ -156,6 +157,19 @@ export default {
     connectToSpotify() {
       // Redirect to the Spotify login page
       window.location.href = "/api/spotifylogin";
+    },
+    fetchSongRequests() {
+      // Fetch the song requests from the server
+      fetch(`/api/songs/${this.$store.state.username}`)
+        .then((res) => res.json())
+        .then((data) => {
+          this.$store.commit("setSongRequests", data.songRequests);
+          this.$store.commit("sortSongRequests");
+        })
+        .catch((err) => {
+          console.error("Error fetching song requests:", err);
+          this.spotifyErrorMessage = `An error occurred while fetching song requests. ${err.message}`;
+        });
     },
     spotifyDisconnect() {
       // Disconnect the Spotify account
@@ -179,6 +193,11 @@ export default {
           console.error("Error disconnecting from Spotify:", err);
           this.spotifyErrorMessage = `An error occurred while disconnecting from Spotify. ${err.message}`;
         });
+    },
+    handleWindowFocus() {
+      // Fetch the song requests when the window is focused
+      this.fetchSongRequests();
+      console.log("Window focused, fetching song requests...");
     },
     handleLoggedOutResponse(){
       // Handle the response when the user is logged out and redirect to login
