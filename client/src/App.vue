@@ -149,7 +149,7 @@ export default {
       // const localip = "";
       // const localip = "192.168.1.121";
       // const qrcodeURL = "http://localhost:8989/requestsong/";
-      const qrcodeURL = "http://requestdj.onrender.com/requestsong/";
+      const qrcodeURL = "http://requestdj.se/requestsong/";
 
       // if (!localip) {
       //   // eslint-disable-next-line no-alert
