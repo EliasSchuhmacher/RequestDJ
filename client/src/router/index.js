@@ -49,42 +49,42 @@ router.beforeEach(async (to, from, next) => {
     return;
   } 
 
-  // Check if the DJ is logged in
-  if (to.name === "RequestSong" && to.params.DJ_name) {
-    const { DJ_name } = to.params;
-    try {
-      const response = await fetch(`/api/check_dj_status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ DJ_name }),
-      });
+  // Check if the DJ is logged in, and exists in the database
+  // if (to.name === "RequestSong" && to.params.DJ_name) {
+  //   const { DJ_name } = to.params;
+  //   try {
+  //     const response = await fetch(`/api/check_dj_status`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ DJ_name }),
+  //     });
 
-      if (response.ok) {
-        next(); // DJ is logged in, proceed to the route
-        return;
-      }
+  //     if (response.ok) {
+  //       next(); // DJ is logged in, proceed to the route
+  //       return;
+  //     }
 
-      if (response.status === 401) {
-        console.info(`DJ ${DJ_name} is not logged in or session has expired.`);
-        next("/NotAcceptingRequests"); // Redirect to "Not Accepting Requests"
-        return;
-      }
+  //     if (response.status === 401) {
+  //       console.info(`DJ ${DJ_name} is not logged in or session has expired.`);
+  //       next("/NotAcceptingRequests"); // Redirect to "Not Accepting Requests"
+  //       return;
+  //     }
 
-      if (response.status === 404) {
-        console.info(`DJ ${DJ_name} not found.`);
-        next("/NotFound"); // Redirect to "Not Found"
-        return;
-      }
+  //     if (response.status === 404) {
+  //       console.info(`DJ ${DJ_name} not found.`);
+  //       next("/NotFound"); // Redirect to "Not Found", not implemented yet so a blank page will show
+  //       return;
+  //     }
 
-      // Handle other unexpected statuses
-      console.error(`Unexpected response status: ${response.status}`);
-      next("/NotAcceptingRequests"); // Redirect to a fallback route
-    } catch (error) {
-      console.error("Error occurred while checking DJ status:", error);
-      next("/NotAcceptingRequests"); // Redirect to a fallback route in case of a network error
-    }
-    return;
-  }
+  //     // Handle other unexpected statuses
+  //     console.error(`Unexpected response status: ${response.status}`);
+  //     next("/NotAcceptingRequests"); // Redirect to a fallback route
+  //   } catch (error) {
+  //     console.error("Error occurred while checking DJ status:", error);
+  //     next("/NotAcceptingRequests"); // Redirect to a fallback route in case of a network error
+  //   }
+  //   return;
+  // }
   
   // Handle DJ existence check for "/requestsong/:DJ_name"
   // if (to.path.startsWith("/requestsong/")) {
