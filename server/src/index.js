@@ -43,15 +43,19 @@ betterLogging(console, {
 console.logLevel = 4;
 
 // Register a custom middleware for logging incoming requests
-app.use(
-  betterLogging.expressMiddleware(console, {
-    ip: { show: true, color: Theme.green.base },
-    method: { show: true, color: Theme.green.base },
-    header: { show: false },
-    path: { show: true },
-    body: { show: true },
-  })
-);
+app.use((req, res, next) => {
+  if (req.method !== "GET") {
+    betterLogging.expressMiddleware(console, {
+      ip: { show: true, color: Theme.green.base },
+      method: { show: true, color: Theme.green.base },
+      header: { show: false },
+      path: { show: true },
+      body: { show: true },
+    })(req, res, next);
+  } else {
+    next(); // Skip logging for GET requests
+  }
+});
 
 // Configure session management
 const sessionConf = expressSession({
@@ -69,6 +73,16 @@ io.use(
     saveUninitialized: false,
   })
 );
+
+// Log requests to /requestsong/:username
+app.get("/requestsong/:username", (req, res, next) => {
+  const { username } = req.params;
+  if (username) {
+    console.log(`QR code scanned for username: ${username}`);
+  }
+  // Pass the request to the Vue Router handler
+  next();
+});
 
 // Serve the landing page for the root URL
 app.use('/', express.static(resolvePath("client", "public", "landing")));
@@ -120,7 +134,7 @@ io.on("connection", (socket) => {
       }
       console.log(`New WS connection for DJ: ${username} (sessionID: ${sessionID})`);
     } else {
-      console.warn("WebSocket connection without an authenticated user");
+      // console.log("WebSocket connection without an authenticated user (QR code scan)");
     }
   });
 });
