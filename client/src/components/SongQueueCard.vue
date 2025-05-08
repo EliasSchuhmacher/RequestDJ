@@ -10,14 +10,13 @@
         <img 
           v-if="songRequest.song_image_url" 
           :src="songRequest.song_image_url" 
-          :class="['img rounded', incoming ? 'album-image-large' : 'album-image']"
+          class="img rounded album-image"
           alt="Album cover"
         >
-        <div 
-          v-else 
-          :class="['d-flex align-items-center justify-content-center', incoming ? 'album-image-placeholder-large' : 'album-image-placeholder']"
-        > 
-          <!-- <i class="fas fa-music"></i> -->
+        <div
+          v-else
+          class="d-flex align-items-center justify-content-center album-image-placeholder"
+        >
         </div>
       </div>
 
@@ -39,47 +38,7 @@
         <span v-if="songRequest.song_artist" class="small">
           {{ songRequest.song_artist }}
         </span>
-
-        <!-- Song Genre and Time Ago-->
-        <div class="d-flex justify-content-between">
-          <span v-if="songRequest.song_genre" class="small text-break me-2">
-            {{ songRequest.song_genre }}
-          </span>
-          <span v-if="timeAgo && !songRequest.requester_name" class="time-ago small ms-auto">
-            <i class="fas fa-clock me-1"></i>{{ timeAgo }}
-          </span>
-        </div>
-
-        <!-- Requester Name and Time Ago -->
-        <div v-if="songRequest.requester_name" class="d-flex justify-content-between">
-          <span class="small me-2">
-            <strong>Requested by: </strong>{{ songRequest.requester_name }}
-          </span>
-          <span v-if="timeAgo" class="time-ago small ms-auto">
-            <i class="fas fa-clock me-1"></i>{{ timeAgo }}
-          </span>
-        </div>
       </div>
-    </div>
-
-    <!-- Buttons -->
-    <div v-if="incoming" class="btn-group d-flex w-100 border-top border-secondary" role="group">
-      <button
-        type="button"
-        class="btn btn-outline-secondary border-0 text-secondary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-        @click="$emit('submit-comingup', songRequest.id)"
-      >
-        <i class="fas mt-1 fa-check"></i>
-        <span class="px-0 small mt-auto">Accept & Queue</span>
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary border-0 text-primary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
-        @click="$emit('submit-remove', songRequest.id)"
-      >
-        <i class="fas mt-1 fa-times"></i>
-        <span class="px-0 small mt-auto">Reject</span>
-      </button>
     </div>
   </div>
 </template>
@@ -102,16 +61,7 @@ import { Tooltip } from 'bootstrap';
         required: true
       }
     },
-    emits: ['submit-comingup', 'set-playing', 'submit-remove'],
-    data() {
-      return {
-        timeAgo: ''
-      };
-    },
     mounted() {
-      this.updateTimeAgo();
-      this.timeAgoTimer = setInterval(this.updateTimeAgo, 60000); // update every 60 seconds
-
       // Initialize Bootstrap tooltips
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.forEach((tooltipTriggerEl) => {
@@ -120,31 +70,10 @@ import { Tooltip } from 'bootstrap';
       });
     },
     beforeUnmount() {
-      // Clear the timer when the component is destroyed
-      clearInterval(this.timeAgoTimer);
       // Hide tooltips before the component is destroyed
       this.disposeTooltips();
     },
     methods: {
-      updateTimeAgo() {
-        const now = new Date();
-        const requestDate = new Date(this.songRequest.request_date);
-        const diffMs = now - requestDate;
-        const diffSec = Math.floor(diffMs / 1000);
-        const diffMin = Math.floor(diffSec / 60);
-        const diffHr = Math.floor(diffMin / 60);
-        const diffDay = Math.floor(diffHr / 24);
-
-        if (diffSec < 60) {
-          this.timeAgo = 'just now';
-        } else if (diffMin < 60) {
-          this.timeAgo = `${diffMin} min ago`;
-        } else if (diffHr < 24) {
-          this.timeAgo = `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
-        } else {
-          this.timeAgo = `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-        }
-      },
       openSpotifyLink(song_spotify_id) {
         // window.open(`https://open.spotify.com/track/${song_spotify_id}`, '_blank');
         window.open(`spotify:track:${song_spotify_id}`, '_blank');
@@ -171,10 +100,6 @@ import { Tooltip } from 'bootstrap';
 <style scoped>
 .clickable {
   cursor: pointer;
-}
-
-.time-ago {
-  color: #b0b0b0; /* Slightly lighter gray for better readability */
 }
 
 .shimmer {

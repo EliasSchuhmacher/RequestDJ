@@ -39,7 +39,7 @@
     <div class="overflow-auto px-sm-5 h-100">
       <transition-group name="slam" tag="div">
         <span v-if="$store.state.currentlyPlaying && $store.state.spotifyConnected" class="d-block mt-1 text-muted small">Currently Playing:</span>
-        <SongRequestCard
+        <SongQueueCard
         v-if="$store.state.currentlyPlaying && $store.state.spotifyConnected"
         :key="$store.state.currentlyPlaying.id"
         :song-request="$store.state.currentlyPlaying"
@@ -50,7 +50,7 @@
         @submit-comingup="prevent"
         />
         <span v-if="$store.state.spotifyQueue.length > 0" class="d-block mt-2 text-muted small">Coming Up:</span>
-        <SongRequestCard
+        <SongQueueCard
         v-for="song in $store.state.spotifyQueue"
         :key="song.id"
         :song-request="song"
@@ -90,11 +90,13 @@
 
 <script>
 import SongRequestCard from "../components/SongRequestCard.vue";
+import SongQueueCard from "../components/SongQueueCard.vue";
 
 export default {
   name: "AdminView",
   components: {
     SongRequestCard,
+    SongQueueCard,
   },
   data: () => ({
     newtime: "10:00",

@@ -89,7 +89,7 @@
       <div class="row h-100">
         <div class="col overflow-auto h-100">
           <span v-if="currentlyPlaying" class="d-block mt-1 text-muted small">Currently Playing:</span>
-          <SongRequestCard
+          <SongQueueCard
           v-if="currentlyPlaying"
           :key="currentlyPlaying.id"
           :song-request="currentlyPlaying"
@@ -97,7 +97,7 @@
           :incoming="false"
           />
           <span v-if="spotifyQueue.length > 0" class="d-block mt-2 text-muted small">Coming Up:</span>
-          <SongRequestCard
+          <SongQueueCard
           v-for="song in spotifyQueue"
           :key="song.id"
           :song-request="song"
@@ -122,12 +122,12 @@
 </template>
 
 <script>
-import SongRequestCard from "../components/SongRequestCard.vue";
+import SongQueueCard from "../components/SongQueueCard.vue";
 
 export default {
   name: "RequestSongView",
   components: {
-    SongRequestCard,
+    SongQueueCard,
   },
   props: {
     // eslint-disable-next-line vue/prop-name-casing
