@@ -4,7 +4,7 @@
     :class="['card my-2 shadow rounded bg-tertiary-custom', 
     { shimmer: status === 'coming_up', loading: status === 'playing' }]"
   >
-    <div class="px-2 my-2 d-flex align-items-center">
+    <div class="px-2 my-2 d-flex align-items-center position-relative">
       <!-- Album Image -->
       <div class="me-2">
         <img 
@@ -39,26 +39,35 @@
         <span v-if="songRequest.song_artist" class="small">
           {{ songRequest.song_artist }}
         </span>
+        <span v-if="songRequest.song_genre" class="small text-break me-2">
+          {{ songRequest.song_genre }}
+        </span>
+        <span v-if="songRequest.requester_name" class="small me-2">
+          <strong>Requested by: </strong>{{ songRequest.requester_name }}
+        </span>
+        <span v-if="timeAgo" class="time-ago small ms-auto z-3 bg-tertiary-custom rounded-pill">
+          <i class="fas fa-clock me-1"></i>{{ timeAgo }}
+        </span>
 
         <!-- Song Genre and Time Ago-->
-        <div class="d-flex justify-content-between">
+        <!-- <div class="d-flex justify-content-between">
           <span v-if="songRequest.song_genre" class="small text-break me-2">
             {{ songRequest.song_genre }}
           </span>
           <span v-if="timeAgo && !songRequest.requester_name" class="time-ago small ms-auto">
             <i class="fas fa-clock me-1"></i>{{ timeAgo }}
           </span>
-        </div>
+        </div> -->
 
         <!-- Requester Name and Time Ago -->
-        <div v-if="songRequest.requester_name" class="d-flex justify-content-between">
+        <!-- <div v-if="songRequest.requester_name" class="d-flex justify-content-between">
           <span class="small me-2">
             <strong>Requested by: </strong>{{ songRequest.requester_name }}
           </span>
           <span v-if="timeAgo" class="time-ago small ms-auto">
             <i class="fas fa-clock me-1"></i>{{ timeAgo }}
           </span>
-        </div>
+        </div> -->
       </div>
     </div>
 
@@ -175,6 +184,9 @@ import { Tooltip } from 'bootstrap';
 
 .time-ago {
   color: #b0b0b0; /* Slightly lighter gray for better readability */
+  position: absolute;
+  bottom: -0.2rem;
+  right: 0.5rem;
 }
 
 .shimmer {
