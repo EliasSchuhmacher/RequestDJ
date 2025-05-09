@@ -11,6 +11,7 @@ export default createStore({
     spotifyConnected: false,
     selectedBookingTimeslot: "",
     songRequestResponse: "",
+    lastFetchTimestamp: 0,
     // spotifyAccessToken: null,
   },
   getters: {
@@ -89,8 +90,40 @@ export default createStore({
           break;
         }
       }
-    }
+    },
+    updateLastFetchTimestamp(state) {
+      state.lastFetchTimestamp = Date.now();
+    },
   },
-  actions: {},
+  actions: {
+    async fetchSongRequests({ commit, state }) {
+
+      // Make sure the user is authenticated
+      if (!state.authenticated) {
+        console.log("User is not authenticated. Skipping fetch.");
+        return;
+      }
+
+      const now = Date.now();
+      const MIN_FETCH_INTERVAL = 5000; // ms
+
+      if (now - state.lastFetchTimestamp < MIN_FETCH_INTERVAL) {
+        console.log("Skipping fetch: too soon since last one.");
+        return;
+      }
+
+      console.log("Fetching song requests...");
+      commit("updateLastFetchTimestamp");
+
+      try {
+        const response = await fetch(`/api/songs/${state.username}`);
+        const data = await response.json();
+        commit("setSongRequests", data.songRequests);
+        commit("sortSongRequests");
+      } catch (error) {
+        console.error("Error fetching song requests:", error);
+      }
+    },
+  },
   modules: {},
 });

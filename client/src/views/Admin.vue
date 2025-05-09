@@ -126,14 +126,14 @@ export default {
     },
   },
   async mounted() {
-    const { commit } = this.$store;
+    const { commit, dispatch } = this.$store;
 
     // Fetch the song requests from the server
-    this.fetchSongRequests();
+    dispatch("fetchSongRequests");
 
     // Add event listener on window focus
-    window.addEventListener("focus", this.handleWindowFocus); // Re-fetches song requests when the window is focused
-
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    
     // Check if the user has connected to Spotify
     const spotifyRes = await fetch(`/api/checkspotifyconnected`);
     const { connected } = await spotifyRes.json();
@@ -147,7 +147,7 @@ export default {
   },
   beforeUnmount() {
     this.stopPolling();
-    window.removeEventListener("focus", this.handleWindowFocus); // Clean up event listener
+    document.removeEventListener("visibilitychange", this.handleVisibilityChange); // Clean up event listener
   },
   methods: {
     prevent() {
@@ -160,19 +160,20 @@ export default {
       // Redirect to the Spotify login page
       window.location.href = "/api/spotifylogin";
     },
-    fetchSongRequests() {
-      // Fetch the song requests from the server
-      fetch(`/api/songs/${this.$store.state.username}`)
-        .then((res) => res.json())
-        .then((data) => {
-          this.$store.commit("setSongRequests", data.songRequests);
-          this.$store.commit("sortSongRequests");
-        })
-        .catch((err) => {
-          console.error("Error fetching song requests:", err);
-          this.spotifyErrorMessage = `An error occurred while fetching song requests. ${err.message}`;
-        });
-    },
+    // No longer used, moved to store
+    // fetchSongRequests() {
+    //   // Fetch the song requests from the server
+    //   fetch(`/api/songs/${this.$store.state.username}`)
+    //     .then((res) => res.json())
+    //     .then((data) => {
+    //       this.$store.commit("setSongRequests", data.songRequests);
+    //       this.$store.commit("sortSongRequests");
+    //     })
+    //     .catch((err) => {
+    //       console.error("Error fetching song requests:", err);
+    //       this.spotifyErrorMessage = `An error occurred while fetching song requests. ${err.message}`;
+    //     });
+    // },
     spotifyDisconnect() {
       // Disconnect the Spotify account
       fetch("/api/spotifydisconnect", {
@@ -196,10 +197,12 @@ export default {
           this.spotifyErrorMessage = `An error occurred while disconnecting from Spotify. ${err.message}`;
         });
     },
-    handleWindowFocus() {
+    handleVisibilityChange() {
       // Fetch the song requests when the window is focused
-      this.fetchSongRequests();
-      console.log("Window focused, fetching song requests...");
+      if (document.visibilityState === "visible") {
+        this.$store.dispatch("fetchSongRequests");
+        console.log("Window focused, fetching song requests...");
+      }
     },
     handleLoggedOutResponse(){
       // Handle the response when the user is logged out and redirect to login

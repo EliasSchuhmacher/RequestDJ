@@ -68,6 +68,11 @@ export default {
     const { commit, getters } = this.$store;
     const { push } = this.$router;
 
+    this.socket.on("connect", () => {
+      console.log("WebSocket connected — fetching song requests...");
+      this.$store.dispatch("fetchSongRequests");
+    });
+
     // Configure socket responses
     this.socket.on("new", (songRequest) => {
       console.log("📩 New song request received via socket:", songRequest);
