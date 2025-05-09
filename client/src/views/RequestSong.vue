@@ -203,14 +203,14 @@ export default {
     }
     this.fetchSpotifyQueue();
 
-    // Add event listener for window focus
-    window.addEventListener("focus", this.handleWindowFocus);
+    // Add event listener for visibility change
+    window.addEventListener("visibilitychange", this.handleVisibilityChange);
   },
 
 
   beforeUnmount() {
     // Remove event listener to avoid memory leaks
-    window.removeEventListener("focus", this.handleWindowFocus);
+    window.removeEventListener("visibilitychange", this.handleVisibilityChange);
   },
 
 
@@ -226,15 +226,21 @@ export default {
       };
     },
 
-    // Handle the window focus event, updating the song request status and timer
-    handleWindowFocus() {
-      console.log("Window focused");
-      
-      // Update the timer
-      this.resumeCooldownIfActive();
-      this.fetchSpotifyQueue();
-      if (this.requestSent && this.sentSongRequestId) {
-        this.fetchSongRequestStatus(this.sentSongRequestId);
+    // Handle the window visibilitychange event, updating the song request status and timer
+    handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        console.log("Tab became visible");
+
+        // Resume cooldown
+        this.resumeCooldownIfActive();
+
+        // Fetch latest data
+        this.fetchSpotifyQueue();
+
+        // Re-check status of sent request (if any)
+        if (this.requestSent && this.sentSongRequestId) {
+          this.fetchSongRequestStatus(this.sentSongRequestId);
+        }
       }
     },
 
