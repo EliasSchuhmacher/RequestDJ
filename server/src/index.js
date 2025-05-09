@@ -63,7 +63,8 @@ const sessionConf = expressSession({
   resave: false,
   saveUninitialized: true,
   store: sessionStore,
-  cookie: { maxAge: 6 * 60 * 60 * 1000 }, // 6 hours
+  // cookie: { maxAge: 6 * 60 * 60 * 1000 }, // 6 hours
+  cookie: { maxAge: 48 * 60 * 60 * 1000 }, // 48 hours
 });
 
 app.use(sessionConf);
