@@ -109,11 +109,22 @@ router.post("/login", async (req, res) => {
   }
 
   bcrypt.compare(password, dbPassword, (err, result) => {
+    if (err) {
+      console.error("Error comparing passwords:", err);
+      res.status(500).json({ message: "Internal server error" });
+      return;
+    }
+
     if (result === true) {
       // Password matched! Let the user log in.
-      console.log("password matched!");
+      console.log("Password matched!");
       handleLogin(req, res, username); // ✅ Call your helper function here
-  }});
+    } else {
+      // Password did not match
+      console.log("Password did not match!");
+      res.status(401).json({ authenticated: false, message: "Invalid credentials" });
+    }
+  });
 });
 
 router.post("/signup", async (req, res) => {
