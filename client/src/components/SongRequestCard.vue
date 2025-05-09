@@ -187,6 +187,7 @@ import { Tooltip } from 'bootstrap';
   position: absolute;
   bottom: -0.2rem;
   right: 0.5rem;
+  padding-left: 2px;
 }
 
 .shimmer {
