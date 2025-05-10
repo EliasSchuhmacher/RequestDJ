@@ -120,6 +120,9 @@ import { Tooltip } from 'bootstrap';
     mounted() {
       this.updateTimeAgo();
       this.timeAgoTimer = setInterval(this.updateTimeAgo, 60000); // update every 60 seconds
+      
+      // Handle visibility change event
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
       // Initialize Bootstrap tooltips
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -131,6 +134,8 @@ import { Tooltip } from 'bootstrap';
     beforeUnmount() {
       // Clear the timer when the component is destroyed
       clearInterval(this.timeAgoTimer);
+      // Handle visibility change event
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
       // Hide tooltips before the component is destroyed
       this.disposeTooltips();
     },
@@ -157,6 +162,13 @@ import { Tooltip } from 'bootstrap';
       openSpotifyLink(song_spotify_id) {
         // window.open(`https://open.spotify.com/track/${song_spotify_id}`, '_blank');
         window.open(`spotify:track:${song_spotify_id}`, '_blank');
+      },
+      // Handle visibility change event
+      handleVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+          // The page is visible, update the time ago
+          this.updateTimeAgo();
+        }
       },
       disposeTooltips() {
         console.log('disposing tooltips');
