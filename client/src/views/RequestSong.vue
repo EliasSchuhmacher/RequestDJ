@@ -141,6 +141,7 @@ export default {
     song_genre: "",
     song_spotify_id: "",
     song_image_url: "",
+    song_popularity_score: "",
     requester_name: "",
     // song_artist: "",
     suggestions: [], // Initialize as an empty array
@@ -287,6 +288,7 @@ export default {
       this.song_title = `${suggestion.name} by ${suggestion.artists.map(artist => artist.name).join(', ')}`;
       this.song_spotify_id = suggestion.spotify_id;
       this.song_image_url = suggestion.spotify_image_url;
+      this.song_popularity_score = suggestion.popularity_score;
 
       // Fetch the genre of the first artist of the selected song
       // Potential problem: the user might send the request before the genre is finished fetching
@@ -359,6 +361,7 @@ export default {
           artists: track.artists,
           spotify_id: track.id, // Spotify ID
           spotify_image_url: track.album.images[0]?.url || '', // Image URL
+          popularity_score: track.popularity, // Popularity score
         }));
         // Get the top 5 tracks
         const topTracks = extractedTracks.slice(0, 5); // Limit to top 5 tracks
@@ -435,6 +438,10 @@ export default {
 
       this.$store.commit("setSongRequestResponse", "");
 
+      console.log("Sending song request to server...");
+      console.log("Song title:", this.song_title);
+      console.log("Song popularity score", this.song_popularity_score);
+
       // Send the booking to server via AJAX-post request
       fetch(`/api/songs`, {
         method: "POST",
@@ -448,6 +455,7 @@ export default {
           requester_name: this.requester_name,
           song_genre: this.song_genre,
           song_image_url: this.song_image_url,
+          song_popularity_score: this.song_popularity_score,
         }),
       })
       .then(response => {

@@ -70,7 +70,7 @@ router.get("/songs/:username", async (req, res) => {
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
   const result = await db.query(
-    'SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url FROM songrequests WHERE dj_username = $1;',
+    'SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score FROM songrequests WHERE dj_username = $1;',
     [username]
   );
   const songRequests = result.rows;

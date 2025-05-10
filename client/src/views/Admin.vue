@@ -212,7 +212,8 @@ export default {
       this.$store.commit("setSpotifyQueue", []);
       this.$store.commit("setCurrentlyPlaying", {});
       this.$store.commit("setSpotifyConnected", false);
-      this.$router.push("/login");
+      // this.$router.push("/login");
+      window.location.href = "/login"; // Redirect to login page, forcing a full page reload
     },
     getSpotifyQueue() {
       // Check if the user is connected to Spotify

@@ -6,7 +6,7 @@
   >
     <div class="px-2 my-2 d-flex align-items-center position-relative">
       <!-- Album Image -->
-      <div class="me-2">
+      <div class="me-2 py-2">
         <img 
           v-if="songRequest.song_image_url" 
           :src="songRequest.song_image_url" 
@@ -45,7 +45,16 @@
         <span v-if="songRequest.requester_name" class="small me-2">
           <strong>Requested by: </strong>{{ songRequest.requester_name }}
         </span>
-        <span v-if="timeAgo" class="time-ago small ms-auto z-3 bg-tertiary-custom rounded-pill">
+        <span 
+          v-if="songRequest.song_popularity_score" 
+          class="extra-small lighter-gray me-auto d-inline-flex align-items-center"
+          data-bs-toggle="tooltip" 
+          title="Spotify's popularity score ranges from 0 to 100, where 100 is the most popular."
+        >
+          {{ songRequest.song_popularity_score }} % popularity
+          <i class="fas fa-question-circle fa-xs ms-1 text-muted icon-adjust"></i>
+        </span>
+        <span v-if="timeAgo" class="time-ago lighter-gray small ms-auto z-3 bg-tertiary-custom rounded-pill">
           <i class="fas fa-clock me-1"></i>{{ timeAgo }}
         </span>
 
@@ -194,8 +203,20 @@ import { Tooltip } from 'bootstrap';
   cursor: pointer;
 }
 
-.time-ago {
+.lighter-gray {
   color: #b0b0b0; /* Slightly lighter gray for better readability */
+}
+
+.extra-small {
+  font-size: 0.8rem; /* Smaller than Bootstrap's small */
+}
+
+.icon-adjust {
+  position: relative;
+  top: 1px; /* Shifts the icon down slightly for better alignment */
+}
+
+.time-ago {
   position: absolute;
   bottom: -0.2rem;
   right: 0.5rem;
