@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import e, { json, Router } from "express";
 import { v4 as uuidv4 } from 'uuid';
 import Model from "../model.js";
@@ -193,6 +194,41 @@ router.get("/spotifycallback", async (req, res) => {
   }
 
 
+});
+
+// Toggle accepting song requests
+router.post("/acceptingrequests/toggle", async (req, res) => {
+  const username = req.session.user;
+
+  // Check if the user is logged in
+  if (!username) {
+    res.status(401).json({ message: "Unauthorized: User not logged in" });
+    return;
+  }
+
+  const { currently_accepting } = req.body;
+
+  // Validate the input
+  if (typeof currently_accepting !== "boolean") {
+    res.status(400).json({ message: "Invalid request: 'currently_accepting' must be a boolean" });
+    return;
+  }
+
+  try {
+    // Update the currently_accepting field in the database
+    await db.query("UPDATE users SET currently_accepting = $1 WHERE name = $2", [currently_accepting, username]);
+
+    if (currently_accepting) {
+      console.log(`✅ ${username} is now accepting song requests`);
+      res.status(200).json({ message: "Now accepting song requests" });
+    } else {
+      console.log(`❌ ${username} is no longer accepting song requests`);
+      res.status(200).json({ message: "No longer accepting song requests" });
+    }
+  } catch (error) {
+    console.error("Error toggling accepting requests:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // Helper function to notify the requester of the song status

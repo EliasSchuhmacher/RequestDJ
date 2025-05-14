@@ -1,6 +1,10 @@
 <!-- eslint-disable vue/prop-name-casing -->
 <template>
-  <div class="row h-100">
+  <!-- Show NotAcceptingRequestsCard if DJ is not accepting requests -->
+  <NotAcceptingRequestsCard v-if="!isDJAcceptingRequests" />
+
+   <!-- Show the usual view if DJ is accepting requests -->
+  <div v-else class="row h-100">
     <div class="col"></div>
     <div class="col-sm-6 h-100">
       <div class="card shadow-lg mt-5 bg-secondary-custom text-light">
@@ -123,11 +127,13 @@
 
 <script>
 import SongQueueCard from "../components/SongQueueCard.vue";
+import NotAcceptingRequestsCard from "../components/NotAcceptingRequestsCard.vue";
 
 export default {
   name: "RequestSongView",
   components: {
     SongQueueCard,
+    NotAcceptingRequestsCard,
   },
   props: {
     // eslint-disable-next-line vue/prop-name-casing
@@ -137,6 +143,7 @@ export default {
     }
   },
   data: () => ({
+    isDJAcceptingRequests: true, // Tracks if the DJ is accepting requests
     song_title: "",
     song_genre: "",
     song_spotify_id: "",
@@ -186,6 +193,9 @@ export default {
     // Initialize the debounced function with a delay of 300ms
     this.debouncedSearch = this.debounce(this.searchSpotify, 300);
 
+    // Check DJ status when the component is created
+    this.checkDJStatus();
+
     // Check if the user has made a request recently, and update the countdown timer
     this.resumeCooldownIfActive();
 
@@ -227,6 +237,33 @@ export default {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), delay);
       };
+    },
+
+    async checkDJStatus() {
+      try {
+        const response = await fetch("/api/check_dj_status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ DJ_name: this.DJ_name }),
+        });
+
+        if (response.status === 200) {
+          const data = await response.json();
+          console.log(data.message); // "DJ is accepting requests"
+          this.isDJAcceptingRequests = true;
+        } else if (response.status === 403) {
+          const data = await response.json();
+          console.log(data.message); // "DJ is not accepting requests"
+          this.isDJAcceptingRequests = false;
+        } else if (response.status === 404) {
+          console.log("DJ not found");
+          this.$router.push("/notfound"); // Redirect to the notfound page
+        } else {
+          console.error("Unexpected response:", response);
+        }
+      } catch (error) {
+        console.error("Error checking DJ status:", error);
+      }
     },
 
     // Handle the window visibilitychange event, updating the song request status and timer
@@ -481,6 +518,9 @@ export default {
       })
       .catch(err => {
         this.requestSent = false;
+        this.requestAnotherSongDisabled = false;
+        // Remove the last request time from local storage
+        localStorage.removeItem("lastRequestTime");
         this.errorMessage = err.message;
       });
     },

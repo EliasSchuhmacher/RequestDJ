@@ -135,7 +135,7 @@ router.get("/spotify/token", async (req, res) => {
   }
 });
 
-// Check if a DJ is logged in and exists
+// Check if the DJ exists and is currently accepting requests
 router.post("/check_dj_status", async (req, res) => {
   const DJ_name = req.body.DJ_name.trim();
 
@@ -147,25 +147,9 @@ router.post("/check_dj_status", async (req, res) => {
     return;
   }
 
-  // Step 1: Check if the DJ has a valid session
-  const session = await getSessionForUser(DJ_name);
-  if (session) {
-    // Make sure the session has not expired
-    const currentTime = Date.now();
-    const sessionExpirationTime = new Date(session.expires).getTime(); // Convert ISO string to timestamp
-    if (currentTime > sessionExpirationTime) {
-      res.status(401).json({ message: "Unauthorized: Session has expired" });
-      return;
-    }
-
-    // DJ is logged in and session is valid
-    res.status(200).send();
-    return;
-  }
-
   // Step 2: If no session exists, check if the DJ exists in the database
   const result = await db.query(
-    "SELECT name FROM users WHERE name = $1",
+    "SELECT name, currently_accepting FROM users WHERE name = $1",
     [DJ_name]
   );
   const existingUser = result.rows[0];
@@ -176,9 +160,61 @@ router.post("/check_dj_status", async (req, res) => {
     return;
   }
 
-  // DJ exists but is not logged in
-  res.status(401).json({ message: "Unauthorized: DJ is not logged in" });
+  // Response based on whether the DJ is accepting requests
+  if (existingUser.currently_accepting) {
+    // DJ is accepting requests
+    res.status(200).json({ message: "DJ is accepting requests" });
+  } else {
+    // DJ is not accepting requests
+    res.status(403).json({ message: "DJ is not accepting requests" });
+  }
+
 });
+
+// Check if a DJ is logged in and exists based on logged in sessions. (UNUSED)
+// router.post("/check_dj_status", async (req, res) => {
+//   const DJ_name = req.body.DJ_name.trim();
+
+//   console.log("Checking DJ status for DJ_name: ", DJ_name);
+
+//   if (!DJ_name) {
+//     // Invalid request, send response code 400;
+//     res.status(404).json({ message: "Invalid request: DJ name is required" });
+//     return;
+//   }
+
+//   // Step 1: Check if the DJ has a valid session
+//   const session = await getSessionForUser(DJ_name);
+//   if (session) {
+//     // Make sure the session has not expired
+//     const currentTime = Date.now();
+//     const sessionExpirationTime = new Date(session.expires).getTime(); // Convert ISO string to timestamp
+//     if (currentTime > sessionExpirationTime) {
+//       res.status(401).json({ message: "Unauthorized: Session has expired" });
+//       return;
+//     }
+
+//     // DJ is logged in and session is valid
+//     res.status(200).send();
+//     return;
+//   }
+
+//   // Step 2: If no session exists, check if the DJ exists in the database
+//   const result = await db.query(
+//     "SELECT name FROM users WHERE name = $1",
+//     [DJ_name]
+//   );
+//   const existingUser = result.rows[0];
+
+//   if (!existingUser) {
+//     // DJ does not exist
+//     res.status(404).json({ message: "DJ not found" });
+//     return;
+//   }
+
+//   // DJ exists but is not logged in
+//   res.status(401).json({ message: "Unauthorized: DJ is not logged in" });
+// });
 
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
@@ -199,6 +235,14 @@ router.post("/songs", async (req, res) => {
   if (DJresult.rowCount === 0) {
     // DJ does not exist, send response code 404;
     res.status(404).json({ message: "Invalid DJ name in URL" });
+    return;
+  }
+
+  // Check if the DJ is currently accepting requests
+  const DJ = DJresult.rows[0];
+  if (!DJ.currently_accepting) {
+    // DJ is not accepting requests, send response code 403;
+    res.status(403).json({ message: "DJ is not accepting requests" });
     return;
   }
 
