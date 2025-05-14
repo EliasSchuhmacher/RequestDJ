@@ -80,8 +80,8 @@
       </div>
     </div>
 
-    <!-- Buttons -->
-    <div v-if="incoming" class="btn-group d-flex w-100 border-top border-secondary" role="group">
+    <!-- Buttons, show only if not in AI mode -->
+    <div v-if="songRequest.ai_accepted === null" class="btn-group d-flex w-100 border-top border-secondary" role="group">
       <button
         type="button"
         class="btn btn-outline-secondary border-0 text-secondary-custom flex-fill w-100 px-0 py-2 d-flex flex-column align-items-center"
@@ -98,6 +98,23 @@
         <i class="fas mt-1 fa-times"></i>
         <span class="px-0 small mt-auto">Reject</span>
       </button>
+    </div>
+
+    <!-- AI Decision Section -->
+    <div v-else class="bg-dark w-100 border-top border-secondary rounded-bottom py-2 px-1">
+      <div class="text-center d-flex align-items-center justify-content-center">
+        <i
+          :class="['fas me-2', songRequest.ai_accepted ? 'fa-check text-success' : 'fa-times']"
+        ></i>
+        <span
+          :class="['fw-bold', songRequest.ai_accepted ? 'text-secondary-custom' : '']"
+        >
+          {{ songRequest.ai_accepted ? 'ACCEPTED' : 'REJECTED' }}
+        </span>
+      </div>
+      <div class="text-muted small mt-1 text-center">
+        {{ songRequest.ai_reason || 'No reason provided' }}
+      </div>
     </div>
   </div>
 </template>
