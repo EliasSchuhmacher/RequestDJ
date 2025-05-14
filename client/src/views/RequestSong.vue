@@ -460,6 +460,12 @@ export default {
         return;
       }
 
+      if (!this.song_spotify_id) {
+        console.log("no requested song");
+        this.errorMessage = "Please select a song from the suggestions";
+        return;
+      }
+
       // Reset the error message
       this.errorMessage = "";
     

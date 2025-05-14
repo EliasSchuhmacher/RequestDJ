@@ -56,7 +56,7 @@ const getSpotifyAccessToken = async (forceRefresh = false) => {
   }
 };
 
-// Function to refresh a personal Spotify access token (auth code flow), throws an error if it fails so call needs to be inside try/catch
+// Function to refresh a personal Spotify access token (not app token), throws an error if it fails so call needs to be inside try/catch
 const refreshSpotifyAccessToken = async (username) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -114,31 +114,119 @@ const refreshSpotifyAccessToken = async (username) => {
   
 };
 
+const fetchLastfmData = async (artist, track) => {
+  const apiKey = process.env.LASTFM_API_KEY; // Replace with your real API key
+  const baseUrl = 'https://ws.audioscrobbler.com/2.0/';
+  const format = 'json';
+
+  const getTrackInfo = async () => {
+    const url = `${baseUrl}?method=track.getInfo&api_key=${apiKey}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}&format=${format}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Last.fm track.getInfo failed: ${res.statusText}`);
+    return res.json();
+  };
+
+  const getArtistInfo = async () => {
+    const url = `${baseUrl}?method=artist.getInfo&api_key=${apiKey}&artist=${encodeURIComponent(artist)}&format=${format}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Last.fm artist.getInfo failed: ${res.statusText}`);
+    return res.json();
+  };
+
+  const trackInfo = await getTrackInfo();
+  const artistInfo = await getArtistInfo();
+
+  // Extract top tags from track or fallback to artist
+  const trackTags = trackInfo?.track?.toptags?.tag?.map(tag => tag.name) || [];
+  const artistTags = artistInfo?.artist?.tags?.tag?.map(tag => tag.name) || [];
+
+  const finalTags = trackTags.length > 0 ? trackTags : artistTags;
+
+  return {
+    tags: finalTags,
+    trackWiki: trackInfo?.track?.wiki?.summary || null,
+    artistWiki: artistInfo?.artist?.bio?.summary || null,
+  };
+};
+
 // Function to fetch metadata for a song given its Spotify ID
 const fetchSpotifySongMetadata = async (spotifyId) => {
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   const accessToken = await getSpotifyAccessToken();
   try {
-    const response = await fetch(`https://api.spotify.com/v1/tracks/${spotifyId}`, {
+    // Step 1: Get basic track data
+    const trackResponse = await fetch(`https://api.spotify.com/v1/tracks/${spotifyId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) {
-      throw new Error(`Error fetching song metadata: ${response.statusText}`);
+
+    if (!trackResponse.ok) {
+      throw new Error(`Error fetching song metadata: ${trackResponse.statusText}`);
     }
-    const data = await response.json();
+
+    const trackData = await trackResponse.json();
+
+    const {
+      name: title,
+      popularity,
+      explicit,
+      duration_ms,
+      album,
+      artists
+    } = trackData;
+
+    const artistNames = artists.map(artist => artist.name);
+    const artistIds = artists.map(artist => artist.id);
+
+    // Step 2: Get genres for each artist concurrently
+    const genrePromises = artistIds.map(artistId =>
+      fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(response => response.ok ? response.json() : null)
+        .catch(error => {
+          console.warn(`Failed to fetch artist metadata for artist ID ${artistId}:`, error);
+          return null;
+        })
+    );
+
+    const artistDataArray = await Promise.all(genrePromises);
+
+    const genres = artistDataArray
+      .filter(artistData => artistData) // Filter out null responses
+      .flatMap(artistData => artistData.genres); // Extract genres
+
+    // Remove duplicates
+    const uniqueGenres = [...new Set(genres)];
+
+    // Step 3: Last.fm API request for additional metadata
+    let lastfmMetadata = {};
+    try {
+      lastfmMetadata = await fetchLastfmData(artistNames[0], title);
+    } catch (error) {
+      console.warn('Failed to fetch Last.fm metadata:', error);
+    }
+
     return {
-      title: data.name,
-      artist: data.artists[0].name,
-      album: data.album.name,
-      imageUrl: data.album.images[0]?.url,
-      popularity: data.popularity,
-      duration: data.duration_ms / 1000, // Convert milliseconds to seconds
-      explicit: data.explicit,
+      title,
+      artist: artistNames,
+      album: album.name,
+      imageUrl: album.images[0]?.url,
+      popularity,
+      duration: duration_ms / 1000, // Convert to seconds
+      explicit,
+      genres: uniqueGenres,
+      lastfm: {
+        tags: lastfmMetadata.tags,
+        trackWiki: lastfmMetadata.trackWiki,
+        artistWiki: lastfmMetadata.artistWiki
+      }
     };
   } catch (error) {
     console.error('Failed to fetch Spotify song metadata:', error);
@@ -263,12 +351,32 @@ router.post("/songs", async (req, res) => {
   console.log("✅ Received POST /api/songs");
 
   // song genre and requester_name defaults to empty string, if not provided
-  const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '', song_image_url = '', song_popularity_score = '', song_duration = '', song_explicit = false } = req.body;
+  const { DJ_name, song_spotify_id, requester_name = ''} = req.body;
 
-  // Make sure DJ_name, song_name or artist are supplied in request
-  if (!DJ_name || (!song_title && !song_artist)) {
+  // Make sure DJ_name, song_spotify_id are supplied in request
+  if (!DJ_name || !song_spotify_id) {
     // Invalid request, send response code 400;
     res.status(400).send();
+    return;
+  }
+
+  // Fetch the song metadata from Spotify
+  // eslint-disable-next-line one-var
+  let song_title, song_artist, song_genre, song_image_url, song_popularity_score, song_explicit, song_duration, song_lastfmMetadata;
+  try {
+    const songMetadata = await fetchSpotifySongMetadata(song_spotify_id);
+    song_title = songMetadata.title;
+    song_artist = songMetadata.artist.join(", ");
+    song_genre = songMetadata.genres.join(", ");
+    song_image_url = songMetadata.imageUrl;
+    song_popularity_score = songMetadata.popularity;
+    song_explicit = songMetadata.explicit;
+    song_duration = songMetadata.duration;
+    song_lastfmMetadata = songMetadata.lastfm;
+  } catch (error) {
+    console.error('Error fetching song metadata:', error);
+    // Send a 500 error if the metadata fetch fails
+    res.status(500).json({ message: "Failed to fetch song metadata" });
     return;
   }
 
@@ -298,6 +406,9 @@ router.post("/songs", async (req, res) => {
     Duration: ${song_duration || "N/A"} seconds
     Popularity: ${song_popularity_score || "N/A"} (0-100)
     Explicit: ${song_explicit ? "True" : "False"}
+    Last.fm tags: ${song_lastfmMetadata.tags ? song_lastfmMetadata.tags.join(", ") : "N/A"}
+    Last.fm track wiki: ${song_lastfmMetadata.trackWiki || "N/A"}
+    Last.fm artist wiki: ${song_lastfmMetadata.artistWiki || "N/A"}
     `;
 
   console.log("Song String: ", songString);
