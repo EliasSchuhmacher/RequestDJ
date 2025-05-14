@@ -708,7 +708,8 @@ export default {
   line-height: -0.5rem;
   color: #fff;
   letter-spacing: 0.75px;
-  left: 0.4125rem;
+  /* left: 0.4125rem; */
+  left: 0.325rem;
   width: 2.325rem;
 }
 .btn-toggle.btn-sm.btn-sm:before {

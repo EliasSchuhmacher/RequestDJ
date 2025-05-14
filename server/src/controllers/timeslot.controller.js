@@ -9,17 +9,23 @@ const ai = new GoogleGenAI({ apiKey: process.env.AI_API_KEY });
 
 const router = Router();
 
-/**
- * API (see the route handlers below) should combine uniquely identifiable resources (paths)
- * with the appropriate HTTP request methods (GET, POST, PUT, DELETE and more) to manipulate them.
- *
- * GET     /timeslots                       =>  Get all timeslots
- * POST    /timeslots                       =>  Book the timeslot with supplied timeslotID and record bookers name
- * POST    /reserve                         =>  Reserve the timeslot with supplied timeslotID
- * etc.
- */
+// Cache Spotify access token (app token) in memory
+let cachedSpotifyToken = null;
+let tokenExpiresAt = 0;
 
-const getSpotifyAccessToken = async () => {
+/**
+ * Retrieves a Spotify app access token using client credentials flow.
+ * Caches the token until it expires.
+ * @param {boolean} forceRefresh - If true, force fetch a new token even if the current one is still valid.
+ * @returns {Promise<string>} - Spotify access token
+ */
+const getSpotifyAccessToken = async (forceRefresh = false) => {
+  const currentTime = Date.now();
+
+  if (!forceRefresh && cachedSpotifyToken && currentTime < tokenExpiresAt) {
+    return cachedSpotifyToken;
+  }
+
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -34,19 +40,23 @@ const getSpotifyAccessToken = async () => {
       body: 'grant_type=client_credentials',
     });
 
-    
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Failed to fetch token: ${response.status} - ${errorBody}`);
+    }
+
     const data = await response.json();
-    // console.log('Spotify Access Token obtained successfully.', data);
-    // Update token and expiry time
-    //tokenExpiresAt = Date.now() + response.data.expires_in * 1000; // Set expiration time (in milliseconds)
-    return data.access_token;
+    cachedSpotifyToken = data.access_token;
+    tokenExpiresAt = currentTime + data.expires_in * 1000 - 60 * 1000; // Refresh 1 min before actual expiry
+
+    return cachedSpotifyToken;
   } catch (error) {
     console.error('Failed to get Spotify Access Token:', error);
     throw new Error('Unable to fetch Spotify Access Token');
   }
 };
 
-// Function to refresh the Spotify access token, throws an error if it fails so call needs to be inside try/catch
+// Function to refresh a personal Spotify access token (auth code flow), throws an error if it fails so call needs to be inside try/catch
 const refreshSpotifyAccessToken = async (username) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -102,6 +112,38 @@ const refreshSpotifyAccessToken = async (username) => {
     throw new Error(`Failed to refresh Spotify Access Token for user: ${username}. ${error.message}`);
   }
   
+};
+
+// Function to fetch metadata for a song given its Spotify ID
+const fetchSpotifySongMetadata = async (spotifyId) => {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  const accessToken = await getSpotifyAccessToken();
+  try {
+    const response = await fetch(`https://api.spotify.com/v1/tracks/${spotifyId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Error fetching song metadata: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return {
+      title: data.name,
+      artist: data.artists[0].name,
+      album: data.album.name,
+      imageUrl: data.album.images[0]?.url,
+      popularity: data.popularity,
+      duration: data.duration_ms / 1000, // Convert milliseconds to seconds
+      explicit: data.explicit,
+    };
+  } catch (error) {
+    console.error('Failed to fetch Spotify song metadata:', error);
+    throw new Error(`Failed to fetch Spotify song metadata: ${error.message}`);
+  }
 };
 
 // Helper function to get the session for a user
