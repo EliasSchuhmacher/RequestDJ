@@ -142,6 +142,8 @@ export default {
     song_spotify_id: "",
     song_image_url: "",
     song_popularity_score: "",
+    song_duration: "",
+    song_explicit: false,
     requester_name: "",
     // song_artist: "",
     suggestions: [], // Initialize as an empty array
@@ -289,6 +291,8 @@ export default {
       this.song_spotify_id = suggestion.spotify_id;
       this.song_image_url = suggestion.spotify_image_url;
       this.song_popularity_score = suggestion.popularity_score;
+      this.song_duration = suggestion.duration;
+      this.song_explicit = suggestion.explicit;
 
       // Fetch the genre of the first artist of the selected song
       // Potential problem: the user might send the request before the genre is finished fetching
@@ -362,6 +366,8 @@ export default {
           spotify_id: track.id, // Spotify ID
           spotify_image_url: track.album.images[0]?.url || '', // Image URL
           popularity_score: track.popularity, // Popularity score
+          duration: Math.floor(track.duration_ms / 1000), // Duration in full seconds instead of milliseconds
+          explicit: track.explicit, // Explicit content
         }));
         // Get the top 5 tracks
         const topTracks = extractedTracks.slice(0, 5); // Limit to top 5 tracks
@@ -456,6 +462,8 @@ export default {
           song_genre: this.song_genre,
           song_image_url: this.song_image_url,
           song_popularity_score: this.song_popularity_score,
+          song_duration: this.song_duration,
+          song_explicit: this.song_explicit,
         }),
       })
       .then(response => {

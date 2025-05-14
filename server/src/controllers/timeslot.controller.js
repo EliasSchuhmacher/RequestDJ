@@ -1,9 +1,11 @@
 /* eslint-disable camelcase */
 import { Router } from "express";
+import { GoogleGenAI } from "@google/genai";
 import Model from "../model.js";
 import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
 
+const ai = new GoogleGenAI({ apiKey: process.env.AI_API_KEY });
 
 const router = Router();
 
@@ -183,7 +185,7 @@ router.post("/songs", async (req, res) => {
   console.log("✅ Received POST /api/songs");
 
   // song genre and requester_name defaults to empty string, if not provided
-  const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '', song_image_url = '', song_popularity_score = '' } = req.body; 
+  const { DJ_name, song_title, song_artist, song_spotify_id, song_genre = '', requester_name = '', song_image_url = '', song_popularity_score = '', song_duration = '', song_explicit = false } = req.body;
 
   // Make sure DJ_name, song_name or artist are supplied in request
   if (!DJ_name || (!song_title && !song_artist)) {
@@ -203,10 +205,61 @@ router.post("/songs", async (req, res) => {
   // Get the session id of the requester, and store it with the song request
   const requester_session_id = req.sessionID;
 
+  // Use AI to determine whether the song is acceptable or not
+  const songString = `
+    Title & Artist: ${song_title}
+    Genre: ${song_genre || "N/A"}
+    Duration: ${song_duration || "N/A"} seconds
+    Popularity: ${song_popularity_score || "N/A"} (0-100)
+    Explicit: ${song_explicit ? "True" : "False"}
+    `;
+
+  console.log("Song String: ", songString);
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: songString,
+    config: {
+      systemInstruction: process.env.AI_SYSTEM_INSTRUCTION,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object", // Define the schema as a plain string
+        properties: {
+          chainOfThought: {
+            type: "string",
+          },
+          accepted: {
+            type: "boolean", // Use plain strings for types
+          },
+          reason: {
+            type: "string",
+          },
+        },
+        required: ["chainOfThought", "accepted", "reason"], // Ensure all fields are required
+      },
+    },
+  });
+
+  console.log("AI response: ", response.text);
+  // Parse the AI response as JSON
+  let ai_response;
+  let ai_accepted;
+  let ai_reason;
+  try {
+    ai_response = JSON.parse(response.text);
+    ai_accepted = ai_response?.accepted;
+    ai_reason = ai_response?.reason;
+    console.log("AI Accepted: ", ai_accepted);
+    console.log("AI Reason: ", ai_reason);
+  } catch (error) {
+    console.error("Failed to parse AI response as JSON:", error);
+  }
+
+
   // Insert song request into database
   const insertResult = await db.query(
-    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;",
-    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score]
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;",
+    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason]
   );
 
   const newId = insertResult.rows[0].id;
@@ -218,7 +271,7 @@ router.post("/songs", async (req, res) => {
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
   const result = await db.query(
-    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score FROM songrequests WHERE id = $1;",
+    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason FROM songrequests WHERE id = $1;",
     [newId]
   );
   const songRequest = result.rows[0];
