@@ -47,7 +47,7 @@ const getSpotifyAccessToken = async (forceRefresh = false) => {
 
     const data = await response.json();
     cachedSpotifyToken = data.access_token;
-    tokenExpiresAt = currentTime + data.expires_in * 1000 - 60 * 1000; // Refresh 1 min before actual expiry
+    tokenExpiresAt = currentTime + data.expires_in * 1000 - 3 * 60 * 1000; // Refresh 3 min before actual expiry
 
     return cachedSpotifyToken;
   } catch (error) {

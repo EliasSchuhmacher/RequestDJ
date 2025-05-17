@@ -110,6 +110,17 @@
         >
           {{ songRequest.ai_accepted ? 'ACCEPTED' : 'REJECTED' }}
         </span>
+        <button
+          v-if="songRequest.ai_accepted === false"
+          type="button"
+          class="btn btn-sm ms-2 me-2 p-0 align-baseline position-absolute text-muted end-0"
+          data-bs-toggle="tooltip"
+          title="Click to queue this song manually"
+          @click="$emit('submit-comingup', songRequest.id)"
+        >
+          Accept
+          <i class="fas fa-forward me-1"></i>
+        </button>
       </div>
       <div class="lighter-gray small mt-1 text-center">
         {{ songRequest.ai_reason || 'No reason provided' }}
