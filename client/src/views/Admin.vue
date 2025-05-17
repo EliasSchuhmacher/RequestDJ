@@ -9,8 +9,11 @@
   <div class="col-sm-6 d-flex flex-column custom-height pb-2 pb-sm-0">
     <div class="d-flex flex-wrap align-items-center px-sm-5">
       <h3 class="me-auto">Incoming Requests</h3>
-      <div class="d-flex align-items-center">
-        <span class="text-muted text-small">Accepting Requests:</span>
+    </div>
+    <div class="d-flex flex-wrap align-items-center px-sm-5 mb-2">
+      <!-- Accepting Requests Toggle -->
+      <div class="d-flex align-items-center me-auto mb-2 mb-sm-0">
+        <span class="text-muted text-small">Allow Requests:</span>
         <button
           type="button"
           class="btn btn-sm btn-toggle"
@@ -20,6 +23,29 @@
           @click="toggleAcceptingRequests"
         >
           <div class="handle"></div>
+        </button>
+      </div>
+
+      <!-- AI Mode Toggle -->
+      <div class="d-flex align-items-center">
+        <span class="text-muted text-small">AI Mode:</span>
+        <button
+          type="button"
+          class="btn btn-sm btn-toggle"
+          data-toggle="button"
+          :class="{ active: aiModeEnabled }"
+          aria-pressed="aiModeEnabled"
+          @click="toggleAIMode"
+        >
+          <div class="handle"></div>
+        </button>
+        <button
+          type="button"
+          class="btn p-0 text-secondary"
+          data-bs-toggle="modal"
+          data-bs-target="#aiSettingsModal"
+        >
+          <i class="fas fa-cog"></i>
         </button>
       </div>
     </div>
@@ -85,60 +111,38 @@
       <!-- <button v-else type="button" class="btn btn-success w-100 mt-2 bg-green-custom" @click="connectToSpotify">Refresh Spotify Connection</button> -->
       <!-- <p v-if="spotifyErrorMessage" class="text-muted text-small mt-2">{{ spotifyErrorMessage }}</p> -->
     </div>
-    <!-- <div class="overflow-auto px-sm-5 h-100">
-      <transition-group name="slam" tag="div">
-        <SongRequestCard
-          v-for="songRequest in acceptedSongRequests"
-          :key="songRequest.id"
-          :song-request="songRequest"
-          :status="songRequest.status"
-          :incoming="false"
-          @set-playing="setPlaying"
-          @submit-remove="submitRemove"
-          @submit-comingup="submitComingUp"
-        />
-      </transition-group>
-      <div class="py-4"></div>
-    </div> -->
   </div>
+
+  <AIModal/>
 </div>
 </template>
 
 <script>
 import SongRequestCard from "../components/SongRequestCard.vue";
 import SongQueueCard from "../components/SongQueueCard.vue";
+import AIModal from "../components/AIModal.vue";
 
 export default {
   name: "AdminView",
   components: {
     SongRequestCard,
     SongQueueCard,
+    AIModal,
   },
   data: () => ({
     currentlyAccepting: true,
+    aiModeEnabled: false,
+    customAIPrompt: "",
     intervalId: null,
     spotifyQueueRefreshInterval: 1000 * 15, // 15 seconds
     spotifyErrorMessage: "",
     // TODO: save id of last song request
   }),
   computed: {
-    sortedSongRequests() {
-      // No longer used
-      return this.$store.state.songRequests.slice().sort((a, b) => {
-        if (a.status === 'coming_up' && b.status !== 'coming_up') {
-          return -1;
-        }
-        if (a.status !== 'coming_up' && b.status === 'coming_up') {
-          return 1;
-        }
-        return 0;
-      });
-    },
-    acceptedSongRequests() {
-      return this.$store.state.songRequests.filter(request => request.status !== 'pending').reverse();
-    },
     incomingSongRequests() {
-      return this.$store.state.songRequests.filter(request => request.status === 'pending');
+      return this.$store.state.songRequests.filter(
+        request => request.status === 'pending' || request.ai_accepted !== null
+      );
     },
   },
   async mounted() {
@@ -146,6 +150,12 @@ export default {
 
     // Fetch the song requests from the server
     dispatch("fetchSongRequests");
+
+    // Fetch the accepting status from the server
+    this.fetchAcceptingStatus();
+
+    // Fetch the AI mode status from the server
+    this.fetchAIModeStatus();
 
     // Add event listener on window focus
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
@@ -202,6 +212,26 @@ export default {
         console.error("Error fetching accepting status:", error);
       }
     },
+    async fetchAIModeStatus() {
+      try {
+        const response = await fetch("/api/aimode/status", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          this.aiModeEnabled = data.ai_mode;
+          console.log("AI Mode Status:", data.ai_mode ? "Enabled" : "Disabled");
+        } else {
+          console.error("Failed to fetch AI mode status");
+          this.spotifyErrorMessage = "Failed to fetch AI mode status.";
+        }
+      } catch (error) {
+        console.error("Error fetching AI mode status:", error);
+        this.spotifyErrorMessage = "An error occurred while fetching AI mode status.";
+      }
+    },
     async toggleAcceptingRequests() {
       try {
         const response = await fetch("/api/acceptingrequests/toggle", {
@@ -212,7 +242,7 @@ export default {
 
         if (response.ok) {
           const data = await response.json();
-          this.currentlyAccepting = !this.currentlyAccepting;
+          this.currentlyAccepting = data.currently_accepting; // Update based on server response
           console.log(data.message);
         } else {
           const errorData = await response.json();
@@ -223,6 +253,32 @@ export default {
         console.error("Error toggling accepting requests:", error);
         this.spotifyErrorMessage = "An error occurred while toggling accepting requests.";
       }
+    },
+    async toggleAIMode() {
+      try {
+        const response = await fetch("/api/aimode/toggle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ai_mode: !this.aiModeEnabled }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          this.aiModeEnabled = data.ai_mode; // Update based on server response
+          console.log(data.message);
+        } else {
+          const errorData = await response.json();
+          console.error("Failed to toggle AI mode:", errorData.message);
+          this.spotifyErrorMessage = errorData.message || "Failed to toggle AI mode.";
+        }
+      } catch (error) {
+        console.error("Error toggling AI mode:", error);
+        this.spotifyErrorMessage = "An error occurred while toggling AI mode.";
+      }
+    },
+    saveAIPrompt(prompt) {
+      console.log("Saving AI Prompt:", prompt);
+      // Logic for saving the AI prompt
     },
     // No longer used, moved to store
     // fetchSongRequests() {

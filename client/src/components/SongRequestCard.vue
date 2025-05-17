@@ -1,8 +1,7 @@
 <!-- eslint-disable camelcase -->
 <template>
   <div
-    :class="['card my-2 shadow rounded bg-tertiary-custom', 
-    { shimmer: status === 'coming_up', loading: status === 'playing' }]"
+    class='card my-2 shadow rounded bg-tertiary-custom'
   >
     <div class="px-2 my-2 d-flex align-items-center position-relative">
       <!-- Album Image -->
@@ -39,7 +38,7 @@
         <span v-if="songRequest.song_artist" class="small">
           {{ songRequest.song_artist }}
         </span>
-        <span v-if="songRequest.song_genre" class="small text-break me-2">
+        <span v-if="songRequest.song_genre" class="small text-break me-2 fst-italic">
           {{ songRequest.song_genre }}
         </span>
         <span v-if="songRequest.requester_name" class="small me-2">
@@ -112,7 +111,7 @@
           {{ songRequest.ai_accepted ? 'ACCEPTED' : 'REJECTED' }}
         </span>
       </div>
-      <div class="text-muted small mt-1 text-center">
+      <div class="lighter-gray small mt-1 text-center">
         {{ songRequest.ai_reason || 'No reason provided' }}
       </div>
     </div>

@@ -64,19 +64,35 @@
           class="card-body"
         >
           <p class="h4 py-5 text-center">
-            <i class="fas fa-check"></i>
-            Your request has been sent.
+            <template v-if="$store.state.songRequestResponse === 'coming_up'">
+              <i class="fas fa-check"></i>
+              Accepted
+            </template>
+            <template v-else-if="$store.state.songRequestResponse === 'rejected'">
+              <i class="fas fa-times"></i>
+              Rejected
+            </template>
+            <template v-else>
+              <i class="fas fa-check"></i>
+              Your request has been sent.
+            </template>
           </p>
-          <p v-if="$store.state.songRequestResponse === 'played'" class="text-center text-lead">
-            Horay! Your song has been played!
-          </p>
-          <p v-else-if="$store.state.songRequestResponse === 'coming_up'" class="text-center text-lead">
-            Request Accepted! Your song will be played soon!
+          <p v-if="$store.state.songRequestResponse === 'coming_up'" class="text-center text-lead">
+            Your song will be played soon!
           </p>
           <p v-else-if="$store.state.songRequestResponse === 'rejected'" class="text-center text-lead">
-            Sorry, your song request was rejected. Feel free to request another song.
+            <span v-if="$store.state.songRequestReason" class="fst-italic">
+              {{ $store.state.songRequestReason }}
+            </span>
+            <span v-else>
+              Sorry, your song request was rejected. Feel free to request another song.
+            </span>
           </p>
+          <!-- <p v-else-if="$store.state.songRequestResponse === 'played'" class="text-center text-lead">
+            Horay! Your song has been played!
+          </p> -->
           <p v-else class="text-center text-lead">
+            <span class="spinner-border spinner-border-sm text-light" role="status" aria-hidden="true"></span>
             Awaiting DJ response...
           </p>
           <button 
@@ -164,7 +180,8 @@ export default {
     countdownInterval: null,
     requestAnotherSongDisabled: false,
     // timeoutLength: 3 * 60 * 1000,
-    timeoutLength: 1 * 60 * 1000,
+    timeoutLength: 5 * 60 * 1000,
+    rejectedTimeoutLength: 15 * 1000, // Seconds
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),
@@ -180,6 +197,12 @@ export default {
   },
   watch: {
     songRequestResponse(newStatus) {
+      if (newStatus === "rejected") {
+        // Reduce the countdown to the rejected timeout length if the song is rejected
+        if (this.countdown > this.rejectedTimeoutLength) {
+          this.countdown = this.rejectedTimeoutLength;
+        }
+      }
       if (newStatus === 'coming_up') {
         // fetch the updated queue after a short delay
         setTimeout(() => {
@@ -521,6 +544,16 @@ export default {
         this.sentSongRequestId = response.id; // Save the returned song ID
         localStorage.setItem("lastRequestTime", currentTime);
         localStorage.setItem("sentSongRequestId", this.sentSongRequestId); // Save the song request ID
+        // Check the ai_accepted field in the response
+        if (response.ai_accepted !== null) {
+          if (response.ai_accepted) {
+            this.requestSent = true;
+            this.$store.commit("setSongRequestResponse", "coming_up");
+          } else {
+            this.$store.commit("setSongRequestResponse", "rejected");
+            this.$store.commit("setSongRequestReason", response.ai_reason || "No reason provided.");
+          }
+        } 
       })
       .catch(err => {
         this.requestSent = false;
@@ -537,7 +570,7 @@ export default {
       fetch(`/api/songrequests/${songRequestId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // Include credentials such as cookies
+        credentials: "include",
       })
         .then((response) => {
           if (!response.ok) {
@@ -550,10 +583,14 @@ export default {
         })
         .then((data) => {
           this.$store.commit("setSongRequestResponse", data.status);
+          if (data.status === "rejected") {
+            // Set the rejection reason if available
+            this.$store.commit("setSongRequestReason", data.ai_reason || "");
+          }
         })
         .catch((err) => {
           console.error("Error fetching song request status:", err);
-          this.$store.commit("setSongRequestResponse", "rejected"); // Optionally set an error state
+          this.$store.commit("setSongRequestResponse", "rejected");
         });
     },
 
@@ -567,6 +604,7 @@ export default {
       this.errorMessage = "";
       this.suggestions = [];
       this.$store.commit("setSongRequestResponse", "");
+      this.$store.commit("setSongRequestReason", "");
       this.fetchSpotifyQueue();
     },
   },

@@ -11,6 +11,7 @@ export default createStore({
     spotifyConnected: false,
     selectedBookingTimeslot: "",
     songRequestResponse: "",
+    songRequestReason: "",
     lastFetchTimestamp: 0,
     // spotifyAccessToken: null,
   },
@@ -55,13 +56,13 @@ export default createStore({
       state.songRequestResponse = response;
       console.log("SongRequestResponse: ", response);
     },
-    bookSelectedTime(state, name) {
-      this.selectedBookingTimeslot.bookedBy = name;
+    setSongRequestReason(state, reason) {
+      state.songRequestReason = reason;
     },
     newSongRequest(state, songRequest) {
       // TODO: Send websocket message only to correct DJ instead of broadcasting
         console.log("new song request mutation")
-        state.songRequests.push(songRequest);
+        state.songRequests.unshift(songRequest);
     },
     removeSongRequest(state, id) {
       for (let i = 0; i < state.songRequests.length; i += 1) {
@@ -72,14 +73,11 @@ export default createStore({
       }
     },
     sortSongRequests(state) {
-      state.songRequests.slice().sort((a, b) => {
-        if (a.status === 'coming_up' && b.status !== 'coming_up') {
-          return -1;
-        }
-        if (a.status !== 'coming_up' && b.status === 'coming_up') {
-          return 1;
-        }
-        return 0;
+      // Sort the song requests by timestamp
+      state.songRequests.sort((a, b) => {
+        const dateA = new Date(a.request_date);
+        const dateB = new Date(b.request_date);
+        return dateB - dateA; // Sort in descending order
       });
     },
     moveSongRequestToTop(state, id) {

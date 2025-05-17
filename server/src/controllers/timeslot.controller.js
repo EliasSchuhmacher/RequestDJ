@@ -234,6 +234,65 @@ const fetchSpotifySongMetadata = async (spotifyId) => {
   }
 };
 
+// Function to evaluate a song using AI
+const evaluateSongWithAI = async (songMetadata, prompt) => {
+  const {
+    title,
+    genres,
+    duration,
+    popularity,
+    explicit,
+    lastfm,
+  } = songMetadata;
+
+  const songString = `
+    Title & Artist: ${title}
+    Genre: ${genres?.join(", ") || "N/A"}
+    Duration: ${duration || "N/A"} seconds
+    Popularity: ${popularity || "N/A"} (0-100)
+    Explicit: ${explicit ? "True" : "False"}
+    Last.fm tags: ${lastfm?.tags?.join(", ") || "N/A"}
+    Last.fm track wiki: ${lastfm?.trackWiki || "N/A"}
+    Last.fm artist wiki: ${lastfm?.artistWiki || "N/A"}
+  `;
+
+  console.log("Song String: ", songString);
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: songString,
+      config: {
+        systemInstruction: prompt || process.env.AI_SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            chainOfThought: { type: "string" },
+            accepted: { type: "boolean" },
+            reason: { type: "string" },
+          },
+          required: ["chainOfThought", "accepted", "reason"],
+          propertyOrdering: ["chainOfThought", "accepted", "reason"]
+        },
+      },
+    });
+
+    console.log("AI response: ", response.text);
+
+    // Parse the AI response as JSON
+    const aiResponse = JSON.parse(response.text);
+    return {
+      accepted: aiResponse?.accepted,
+      reason: aiResponse?.reason,
+      chainOfThought: aiResponse?.chainOfThought,
+    };
+  } catch (error) {
+    console.error("Failed to evaluate song with AI:", error);
+    throw new Error("AI evaluation failed");
+  }
+};
+
 // Helper function to get the session for a user
 async function getSessionForUser(username) {
   return new Promise((resolve, reject) => {
@@ -250,6 +309,72 @@ async function getSessionForUser(username) {
     });
   });
 }
+
+// Helper function to queue a song in Spotify, 
+// This is called from the /comingup endpoint and also from the POST /songs endpoint if AI accepts the song
+export const queueSongInSpotify = async (song, user) => {
+  // Get user's Spotify access token
+  const res2 = await db.query(
+    "SELECT spotify_access_token FROM users WHERE name=$1",
+    [user]
+  );
+  const spotifyAccessToken = res2.rows[0]?.spotify_access_token;
+
+  if (!spotifyAccessToken) {
+    return {
+      success: false,
+      message: `User has not connected to Spotify. Please queue the song manually: ${song.song_title}`,
+    };
+  }
+
+  if (!song.song_spotify_id) {
+    console.error("Song does not have a Spotify ID");
+    return {
+      success: false,
+      message: `The song does not have a Spotify ID and cannot be queued in Spotify. Please queue the song manually: ${song.song_title}`,
+    };
+  }
+
+  const uri = `spotify:track:${song.song_spotify_id}`;
+  const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
+
+  const tryQueue = async (accessToken) => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Failed to queue song in Spotify:", errorData);
+
+      if (response.status === 401) {
+        // Token expired, try refreshing
+        console.log("Access token expired, refreshing...");
+        const newToken = await refreshSpotifyAccessToken(user);
+        return tryQueue(newToken);
+      }
+
+      // Special case: No active device
+      if (response.status === 404 && errorData.error.reason === "NO_ACTIVE_DEVICE") {
+        return {
+          success: false,
+          reason: "NO_ACTIVE_DEVICE",
+          message: errorData.error.message,
+        };
+      }
+
+      return { success: false, message: errorData.error.message };
+    }
+
+    return { success: true };
+  };
+
+  return tryQueue(spotifyAccessToken);
+};
 
 router.get("/spotify/token", async (req, res) => {
   // console.log("we are in the spotify/token function")
@@ -301,51 +426,6 @@ router.post("/check_dj_status", async (req, res) => {
 
 });
 
-// Check if a DJ is logged in and exists based on logged in sessions. (UNUSED)
-// router.post("/check_dj_status", async (req, res) => {
-//   const DJ_name = req.body.DJ_name.trim();
-
-//   console.log("Checking DJ status for DJ_name: ", DJ_name);
-
-//   if (!DJ_name) {
-//     // Invalid request, send response code 400;
-//     res.status(404).json({ message: "Invalid request: DJ name is required" });
-//     return;
-//   }
-
-//   // Step 1: Check if the DJ has a valid session
-//   const session = await getSessionForUser(DJ_name);
-//   if (session) {
-//     // Make sure the session has not expired
-//     const currentTime = Date.now();
-//     const sessionExpirationTime = new Date(session.expires).getTime(); // Convert ISO string to timestamp
-//     if (currentTime > sessionExpirationTime) {
-//       res.status(401).json({ message: "Unauthorized: Session has expired" });
-//       return;
-//     }
-
-//     // DJ is logged in and session is valid
-//     res.status(200).send();
-//     return;
-//   }
-
-//   // Step 2: If no session exists, check if the DJ exists in the database
-//   const result = await db.query(
-//     "SELECT name FROM users WHERE name = $1",
-//     [DJ_name]
-//   );
-//   const existingUser = result.rows[0];
-
-//   if (!existingUser) {
-//     // DJ does not exist
-//     res.status(404).json({ message: "DJ not found" });
-//     return;
-//   }
-
-//   // DJ exists but is not logged in
-//   res.status(401).json({ message: "Unauthorized: DJ is not logged in" });
-// });
-
 // Add a song request for a specific user:
 router.post("/songs", async (req, res) => {
   console.log("✅ Received POST /api/songs");
@@ -362,17 +442,14 @@ router.post("/songs", async (req, res) => {
 
   // Fetch the song metadata from Spotify
   // eslint-disable-next-line one-var
-  let song_title, song_artist, song_genre, song_image_url, song_popularity_score, song_explicit, song_duration, song_lastfmMetadata;
+  let songMetadata, song_title, song_artist, song_genre, song_image_url, song_popularity_score, song_explicit, song_duration, song_lastfmMetadata;
   try {
-    const songMetadata = await fetchSpotifySongMetadata(song_spotify_id);
+    songMetadata = await fetchSpotifySongMetadata(song_spotify_id);
     song_title = songMetadata.title;
     song_artist = songMetadata.artist.join(", ");
-    song_genre = songMetadata.genres.join(", ");
+    song_genre = songMetadata.lastfm.tags.join(", ");
     song_image_url = songMetadata.imageUrl;
     song_popularity_score = songMetadata.popularity;
-    song_explicit = songMetadata.explicit;
-    song_duration = songMetadata.duration;
-    song_lastfmMetadata = songMetadata.lastfm;
   } catch (error) {
     console.error('Error fetching song metadata:', error);
     // Send a 500 error if the metadata fetch fails
@@ -400,63 +477,54 @@ router.post("/songs", async (req, res) => {
   const requester_session_id = req.sessionID;
 
   // Use AI to determine whether the song is acceptable or not
-  const songString = `
-    Title & Artist: ${song_title}
-    Genre: ${song_genre || "N/A"}
-    Duration: ${song_duration || "N/A"} seconds
-    Popularity: ${song_popularity_score || "N/A"} (0-100)
-    Explicit: ${song_explicit ? "True" : "False"}
-    Last.fm tags: ${song_lastfmMetadata.tags ? song_lastfmMetadata.tags.join(", ") : "N/A"}
-    Last.fm track wiki: ${song_lastfmMetadata.trackWiki || "N/A"}
-    Last.fm artist wiki: ${song_lastfmMetadata.artistWiki || "N/A"}
-    `;
+  let ai_accepted = null;
+  let ai_reason = null;
+  if (DJ.ai_mode && DJ.ai_mode === true) {
+    try {
+      const aiEvaluation = await evaluateSongWithAI(songMetadata, DJ.ai_prompt || process.env.AI_SYSTEM_INSTRUCTION);
 
-  console.log("Song String: ", songString);
+      ai_accepted = aiEvaluation.accepted;
+      ai_reason = aiEvaluation.reason;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: songString,
-    config: {
-      systemInstruction: process.env.AI_SYSTEM_INSTRUCTION,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object", // Define the schema as a plain string
-        properties: {
-          chainOfThought: {
-            type: "string",
-          },
-          accepted: {
-            type: "boolean", // Use plain strings for types
-          },
-          reason: {
-            type: "string",
-          },
-        },
-        required: ["chainOfThought", "accepted", "reason"], // Ensure all fields are required
-      },
-    },
-  });
-
-  console.log("AI response: ", response.text);
-  // Parse the AI response as JSON
-  let ai_response;
-  let ai_accepted;
-  let ai_reason;
-  try {
-    ai_response = JSON.parse(response.text);
-    ai_accepted = ai_response?.accepted;
-    ai_reason = ai_response?.reason;
-    console.log("AI Accepted: ", ai_accepted);
-    console.log("AI Reason: ", ai_reason);
-  } catch (error) {
-    console.error("Failed to parse AI response as JSON:", error);
+      console.log("AI Accepted: ", ai_accepted);
+      console.log("AI Reason: ", ai_reason);
+    } catch (error) {
+      console.error("Error during AI evaluation:", error);
+      // Handle AI evaluation failure (optional)
+      ai_accepted = null;
+      ai_reason = "AI evaluation failed";
+    }
   }
 
+  // Automatically queue the song in Spotify if AI accepted it
+  if (ai_accepted) {
+    const song = {
+      song_title,
+      song_spotify_id
+    };
+    const queueResult = await queueSongInSpotify(song, DJ_name);
 
-  // Insert song request into database
+    if (!queueResult.success) {
+      console.error("Failed to queue song:", queueResult.message);
+      // Handle failure (e.g., notify the user)
+    } else {
+      console.log("Song successfully queued in Spotify");
+    }
+  }
+
+  let status;
+  if (ai_accepted === null) {
+    status = "pending";
+  } else if (ai_accepted === true) {
+    status = "coming_up";
+  } else {
+    status = "rejected";
+  }
+
+  // Insert song request into database, status will default to "pending"
   const insertResult = await db.query(
-    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;",
-    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason]
+    "INSERT INTO songrequests (DJ_username, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *;",
+    [DJ_name, song_title, song_artist, requester_session_id, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason, status]
   );
 
   const newId = insertResult.rows[0].id;
@@ -476,6 +544,7 @@ router.post("/songs", async (req, res) => {
 
   // TODO: Send websocket message only to correct DJ instead of broadcasting
   Model.broadcastNewSongRequest(songRequest);
+
 
 });
 
@@ -575,7 +644,7 @@ router.get("/songrequests/:id", async (req, res) => {
 
   // Get the song request from the database
   const result = await db.query(
-    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre FROM songrequests WHERE id = $1;",
+    "SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, ai_accepted, ai_reason FROM songrequests WHERE id = $1;",
     [id]
   );
   const songRequest = result.rows[0];

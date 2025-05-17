@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Model from "../model.js";
 import db from "../dbPG.js";
 import sessionStore from '../sessionStore.js'; // Import the session store
-import { refreshSpotifyAccessToken } from './timeslot.controller.js';
+import { refreshSpotifyAccessToken, queueSongInSpotify } from './timeslot.controller.js';
 
 const router = Router();
 
@@ -70,8 +70,11 @@ router.get("/songs/:username", async (req, res) => {
   }
 
   // Do not send requester_session_id to client! (Do not use Select * FROM...)
+  // Fetch only the last 12 hours
   const result = await db.query(
-    'SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason FROM songrequests WHERE dj_username = $1;',
+    `SELECT id, song_title, song_artist, request_date, status, dj_username, requester_name, song_genre, song_spotify_id, song_image_url, song_popularity_score, ai_accepted, ai_reason 
+    FROM songrequests 
+    WHERE dj_username = $1 AND request_date >= NOW() - INTERVAL '12 hours';`,
     [username]
   );
   const songRequests = result.rows;
@@ -220,13 +223,132 @@ router.post("/acceptingrequests/toggle", async (req, res) => {
 
     if (currently_accepting) {
       console.log(`✅ ${username} is now accepting song requests`);
-      res.status(200).json({ message: "Now accepting song requests" });
+      res.status(200).json({ 
+        message: "Now accepting song requests", 
+        currently_accepting 
+      });
     } else {
       console.log(`❌ ${username} is no longer accepting song requests`);
-      res.status(200).json({ message: "No longer accepting song requests" });
+      res.status(200).json({ 
+        message: "No longer accepting song requests", 
+        currently_accepting 
+      });
     }
   } catch (error) {
     console.error("Error toggling accepting requests:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Toggle AI mode
+router.post("/aimode/toggle", async (req, res) => {
+  const username = req.session.user;
+
+  // Check if the user is logged in
+  if (!username) {
+    res.status(401).json({ message: "Unauthorized: User not logged in" });
+    return;
+  }
+
+  const { ai_mode } = req.body;
+
+  // Validate the input
+  if (typeof ai_mode !== "boolean") {
+    res.status(400).json({ message: "Invalid request: 'ai_mode' must be a boolean" });
+    return;
+  }
+
+  try {
+    // Update the ai_mode field in the database
+    await db.query("UPDATE users SET ai_mode = $1 WHERE name = $2", [ai_mode, username]);
+
+    if (ai_mode) {
+      console.log(`✅ ${username} has enabled AI mode`);
+      res.status(200).json({ 
+        message: "AI mode enabled", 
+        ai_mode 
+      });
+    } else {
+      console.log(`❌ ${username} has disabled AI mode`);
+      res.status(200).json({ 
+        message: "AI mode disabled", 
+        ai_mode 
+      });
+    }
+  } catch (error) {
+    console.error("Error toggling AI mode:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get AI mode status
+router.get("/aimode/status", async (req, res) => {
+  const username = req.session.user;
+
+  // Check if the user is logged in
+  if (!username) {
+    res.status(401).json({ message: "Unauthorized: User not logged in" });
+    return;
+  }
+
+  try {
+    const result = await db.query("SELECT ai_mode FROM users WHERE name = $1", [username]);
+    const aiMode = result.rows[0]?.ai_mode || false;
+
+    res.status(200).json({ ai_mode: aiMode });
+  } catch (error) {
+    console.error("Error fetching AI mode status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Set custom AI prompt
+router.post("/aimode/prompt", async (req, res) => {
+  const username = req.session.user;
+
+  // Check if the user is logged in
+  if (!username) {
+    res.status(401).json({ message: "Unauthorized: User not logged in" });
+    return;
+  }
+
+  const { ai_prompt } = req.body;
+
+  // Validate the input
+  if (typeof ai_prompt !== "string" || ai_prompt.trim() === "") {
+    res.status(400).json({ message: "Invalid request: 'ai_prompt' must be a non-empty string" });
+    return;
+  }
+
+  try {
+    // Update the ai_prompt field in the database
+    await db.query("UPDATE users SET ai_prompt = $1 WHERE name = $2", [ai_prompt, username]);
+
+    console.log(`✅ ${username} has updated their AI prompt`);
+    res.status(200).json({ message: "AI prompt updated successfully" });
+  } catch (error) {
+    console.error("Error updating AI prompt:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get custom AI prompt
+router.get("/aimode/prompt", async (req, res) => {
+  const username = req.session.user;
+
+  // Check if the user is logged in
+  if (!username) {
+    res.status(401).json({ message: "Unauthorized: User not logged in" });
+    return;
+  }
+
+  try {
+    const result = await db.query("SELECT ai_prompt FROM users WHERE name = $1", [username]);
+    const aiPrompt = result.rows[0]?.ai_prompt || "";
+
+    res.status(200).json({ ai_prompt: aiPrompt });
+  } catch (error) {
+    console.error("Error fetching AI prompt:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -299,6 +421,7 @@ router.post("/playsong", async (req, res) => {
   res.status(200).send();
 });
 
+
 // Mark a song as "coming up": (This is now used to queue a song in Spotify)
 router.post("/comingup", async (req, res) => {
   const { id } = req.body;
@@ -317,75 +440,31 @@ router.post("/comingup", async (req, res) => {
     return;
   }
 
-  // Get user's Spotify access token
-  const res2 = await db.query(
-    "SELECT spotify_access_token FROM users WHERE name=$1",
-    [req.session.user]
-  );
-  let spotifyAccessToken = res2.rows[0]?.spotify_access_token;
-
-  if (!spotifyAccessToken) {
-    res.status(200).json({ songQueued: false, message: "User has not connected to Spotify. Please queue the song manually: " + song.song_title });
-    return;
-  }
-
-  if (!song.song_spotify_id) {
-    console.error("Song does not have a Spotify ID");
-    res.status(200).json({ songQueued: false, message: "The song does not have a Spotify ID and cannot be queued in Spotify. Please queue the song manually: " + song.song_title });
-    await db.query("UPDATE songrequests SET status='coming_up' WHERE id=$1", [id]);
-
-    return;
-  }
-
-  // Try to queue the song
-  const uri = `spotify:track:${song.song_spotify_id}`;
-  const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
-
-  const tryQueue = async (accessToken) => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Failed to queue song in Spotify:', errorData);
-
-      if (response.status === 401) {
-        // Token expired, try refreshing
-        console.log('Access token expired, refreshing...');
-        const newToken = await refreshSpotifyAccessToken(req.session.user);
-        return tryQueue(newToken);
-      }
-
-      // Special case: No active device
-      if (response.status === 404 && errorData.error.reason === "NO_ACTIVE_DEVICE") {
-        return { success: false, reason: "NO_ACTIVE_DEVICE", message: errorData.error.message };
-      }
-
-      return { success: false, message: errorData.error.message };
-    }
-
-    return { success: true };
-  };
-
-  const queueResult = await tryQueue(spotifyAccessToken);
+  // Use the helper function to queue the song
+  const queueResult = await queueSongInSpotify(song, req.session.user);
 
   if (!queueResult.success) {
     if (queueResult.reason === "NO_ACTIVE_DEVICE") {
-      res.status(200).json({ songQueued: false, reason: "NO_ACTIVE_DEVICE", message: "No active Spotify device found. Start playing music in Spotify and try again." });
+      res.status(200).json({
+        songQueued: false,
+        reason: "NO_ACTIVE_DEVICE",
+        message:
+          "No active Spotify device found. Start playing music in Spotify and try again.",
+      });
       return;
     }
 
     // For other errors, still mark the song as coming_up
-    await db.query("UPDATE songrequests SET status='coming_up' WHERE id=$1", [id]);
+    await db.query("UPDATE songrequests SET status='coming_up' WHERE id=$1", [
+      id,
+    ]);
 
     // Notify requester anyway
     notifyRequesterOfStatus(song, "coming_up");
-    res.status(200).json({ songQueued: false, message: queueResult.message + ". Please queue manually: " + song.song_title });
+    res.status(200).json({
+      songQueued: false,
+      message: `${queueResult.message}. Please queue manually: ${song.song_title}`,
+    });
     return;
   }
 
@@ -421,9 +500,9 @@ router.post("/removesong", async (req, res) => {
     return;
   }
 
-  // Remove the song request:
-  db.query(
-    "DELETE FROM songrequests WHERE id=$1",
+  // Set the status to rejected instead of deleting the song request:
+  await db.query(
+    "UPDATE songrequests SET status='rejected' WHERE id=$1",
     [id]
   );
   

@@ -85,9 +85,17 @@ export default {
     this.socket.on("coming_up", () =>
       commit("setSongRequestResponse", "coming_up")
     );
-    this.socket.on("rejected", () =>
-      commit("setSongRequestResponse", "rejected")
-    );
+    this.socket.on("rejected", (payload) => {
+      // payload = { reason: "Song is not suitable for the venue." }
+      commit("setSongRequestResponse", "rejected");
+      console.log("🚫 Song request rejected:", payload.reason);
+      // You can also commit or display the reason:
+      if (payload.reason) {
+        commit("setSongRequestReason", payload.reason);
+      } else {
+        commit("setSongRequestReason", "No reason provided.");
+      }
+    });
 
     // Check if cookie is logged in already or not
     console.log("mounted... now fetching if logged in or not");
