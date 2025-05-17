@@ -180,8 +180,9 @@ export default {
     countdownInterval: null,
     requestAnotherSongDisabled: false,
     // timeoutLength: 3 * 60 * 1000,
-    timeoutLength: 5 * 60 * 1000,
-    rejectedTimeoutLength: 15 * 1000, // Seconds
+    // timeoutLength: 5 * 60 * 1000,
+    timeoutLength: 30 * 1000,
+    rejectedTimeoutLength: 30 * 1000, // Seconds
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
   }),

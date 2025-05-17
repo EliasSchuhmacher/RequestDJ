@@ -144,6 +144,20 @@ export default {
         request => request.status === 'pending' || request.ai_accepted !== null
       );
     },
+    newAIQueuedSongRequest() { // Only true or false in order to be able to fetch new spotify queue on accepted
+      return this.$store.state.newAIQueuedSongRequest;
+    }
+  },
+  watch: {
+    newAIQueuedSongRequest(newVal) {
+      if (newVal) {
+        setTimeout(() => {
+          this.getSpotifyQueue();
+          console.log("New AI queued song request detected, fetching Spotify queue...");
+        }, 500); // 500 ms = 0.5 second
+        this.$store.commit("setNewAIQueuedSongRequest", false);
+      }
+    },
   },
   async mounted() {
     const { commit, dispatch } = this.$store;

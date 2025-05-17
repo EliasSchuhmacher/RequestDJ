@@ -447,7 +447,12 @@ router.post("/songs", async (req, res) => {
     songMetadata = await fetchSpotifySongMetadata(song_spotify_id);
     song_title = songMetadata.title;
     song_artist = songMetadata.artist.join(", ");
-    song_genre = songMetadata.lastfm.tags.join(", ");
+    const allGenres = [
+      ...(songMetadata.lastfm.tags || []),
+      ...(songMetadata.genres || [])
+    ];
+    const uniqueGenres = [...new Set(allGenres)];
+    song_genre = uniqueGenres.join(", ");
     song_image_url = songMetadata.imageUrl;
     song_popularity_score = songMetadata.popularity;
   } catch (error) {

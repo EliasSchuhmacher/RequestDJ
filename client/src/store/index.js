@@ -13,6 +13,7 @@ export default createStore({
     songRequestResponse: "",
     songRequestReason: "",
     lastFetchTimestamp: 0,
+    newAIQueuedSongRequest: false,
     // spotifyAccessToken: null,
   },
   getters: {
@@ -58,6 +59,9 @@ export default createStore({
     },
     setSongRequestReason(state, reason) {
       state.songRequestReason = reason;
+    },
+    setNewAIQueuedSongRequest(state, value) {
+      state.newAIQueuedSongRequest = value;
     },
     newSongRequest(state, songRequest) {
       // TODO: Send websocket message only to correct DJ instead of broadcasting

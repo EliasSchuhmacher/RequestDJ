@@ -77,6 +77,9 @@ export default {
     this.socket.on("new", (songRequest) => {
       console.log("📩 New song request received via socket:", songRequest);
       commit("newSongRequest", songRequest); // no need to parse
+      if (songRequest.ai_accepted === true) {
+        commit("setNewAIQueuedSongRequest", true);
+      }
     });
     
     this.socket.on("played", () =>
