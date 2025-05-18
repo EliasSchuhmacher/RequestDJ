@@ -87,7 +87,7 @@ router.get("/spotifylogin", async (req, res) => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
   const state = uuidv4();
-  const scope = 'user-read-private user-read-email user-read-currently-playing user-read-playback-state user-modify-playback-state';
+  const scope = 'user-read-private user-read-email user-read-currently-playing user-read-recently-played user-read-playback-state user-modify-playback-state';
 
   // Save the state in the session
   req.session.spotifyState = state;

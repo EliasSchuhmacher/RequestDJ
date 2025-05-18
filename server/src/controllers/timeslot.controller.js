@@ -114,11 +114,12 @@ const refreshSpotifyAccessToken = async (username) => {
   
 };
 
-const fetchLastfmData = async (artist, track) => {
-  const apiKey = process.env.LASTFM_API_KEY; // Replace with your real API key
+const fetchLastfmData = async (artist, track, fetchTrackOnly = false) => {
+  const apiKey = process.env.LASTFM_API_KEY;
   const baseUrl = 'https://ws.audioscrobbler.com/2.0/';
   const format = 'json';
 
+  // Always fetch track info
   const getTrackInfo = async () => {
     const url = `${baseUrl}?method=track.getInfo&api_key=${apiKey}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}&format=${format}`;
     const res = await fetch(url);
@@ -126,6 +127,7 @@ const fetchLastfmData = async (artist, track) => {
     return res.json();
   };
 
+  // Optionally fetch artist info
   const getArtistInfo = async () => {
     const url = `${baseUrl}?method=artist.getInfo&api_key=${apiKey}&artist=${encodeURIComponent(artist)}&format=${format}`;
     const res = await fetch(url);
@@ -134,9 +136,13 @@ const fetchLastfmData = async (artist, track) => {
   };
 
   const trackInfo = await getTrackInfo();
-  const artistInfo = await getArtistInfo();
+  let artistInfo = null;
 
-  // Extract top tags from track or fallback to artist
+  if (!fetchTrackOnly) {
+    artistInfo = await getArtistInfo();
+  }
+
+  // Extract top tags from track or fallback to artist (if available)
   const trackTags = trackInfo?.track?.toptags?.tag?.map(tag => tag.name) || [];
   const artistTags = artistInfo?.artist?.tags?.tag?.map(tag => tag.name) || [];
 
@@ -234,8 +240,68 @@ const fetchSpotifySongMetadata = async (spotifyId) => {
   }
 };
 
+export const fetchRecentlyPlayedWithTags = async (username, limit = 4) => {
+  // Get user's Spotify access token
+  const result = await db.query(
+    "SELECT spotify_access_token FROM users WHERE name=$1",
+    [username]
+  );
+  const spotifyAccessToken = result.rows[0]?.spotify_access_token;
+
+  if (!spotifyAccessToken) {
+    throw new Error("User has not connected to Spotify");
+  }
+
+  // Fetch recently played tracks from Spotify
+  const fetchTracks = async (token) => {
+    const response = await fetch(`https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired, try to refresh
+        const newToken = await refreshSpotifyAccessToken(username);
+        return fetchTracks(newToken);
+      }
+      console.log("Failed to fetch recently played tracks, user has to update spotify permissions:", response.status, response.statusText);
+      return [];
+    }
+    return response.json();
+  };
+
+  const data = await fetchTracks(spotifyAccessToken);
+
+  // For each track, fetch Last.fm tags (in parallel, but only tags)
+  const tracks = data.items.slice(0, limit).map(item => item.track);
+  const results = await Promise.all(tracks.map(async (track) => {
+    let tags = [];
+    try {
+      const lastfm = await fetchLastfmData(
+        track.artists[0]?.name || "",
+        track.name,
+        true // Only fetch track info, not artist info
+      );
+      tags = lastfm.tags || [];
+    } catch (e) {
+      tags = [];
+    }
+    return {
+      title: track.name,
+      artists: track.artists.map(a => a.name),
+      tags
+    };
+  }));
+  
+  console.log("Recently played tracks with tags:", results);
+
+  return results;
+};
+
 // Function to evaluate a song using AI
-const evaluateSongWithAI = async (songMetadata, prompt) => {
+const evaluateSongWithAI = async (songMetadata, recentlyPlayed, prompt) => {
   const {
     title,
     genres,
@@ -244,6 +310,19 @@ const evaluateSongWithAI = async (songMetadata, prompt) => {
     explicit,
     lastfm,
   } = songMetadata;
+
+  // recentlyPlayed is expected to be an array of { title, artists, tags }
+  const lastPlayedList = (recentlyPlayed || [])
+    .map((track, idx) => 
+      `${idx + 1}. "${track.title}" by ${track.artists.join(", ")} [tags: ${track.tags.join(", ")}]`
+    ).join("\n    ");
+
+  // Gather all unique tags from recently played tracks
+  const allTags = [
+    ...new Set(
+      (recentlyPlayed || []).flatMap(track => track.tags || [])
+    )
+  ];
 
   const songString = `
     Title & Artist: ${title}
@@ -254,6 +333,12 @@ const evaluateSongWithAI = async (songMetadata, prompt) => {
     Last.fm tags: ${lastfm?.tags?.join(", ") || "N/A"}
     Last.fm track wiki: ${lastfm?.trackWiki || "N/A"}
     Last.fm artist wiki: ${lastfm?.artistWiki || "N/A"}
+
+    --- Recently Played Tracks ---
+    ${lastPlayedList || "N/A"}
+
+    --- All Tags from Recently Played ---
+    ${allTags.length > 0 ? allTags.join(", ") : "N/A"}
   `;
 
   console.log("Song String: ", songString);
@@ -486,7 +571,8 @@ router.post("/songs", async (req, res) => {
   let ai_reason = null;
   if (DJ.ai_mode && DJ.ai_mode === true) {
     try {
-      const aiEvaluation = await evaluateSongWithAI(songMetadata, DJ.ai_prompt || process.env.AI_SYSTEM_INSTRUCTION);
+      const recentlyPlayed = await fetchRecentlyPlayedWithTags(DJ_name, 4);
+      const aiEvaluation = await evaluateSongWithAI(songMetadata, recentlyPlayed, DJ.ai_prompt || process.env.AI_SYSTEM_INSTRUCTION);
 
       ai_accepted = aiEvaluation.accepted;
       ai_reason = aiEvaluation.reason;
