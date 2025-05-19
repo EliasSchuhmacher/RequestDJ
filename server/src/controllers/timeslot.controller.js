@@ -334,7 +334,7 @@ const evaluateSongWithAI = async (songMetadata, recentlyPlayed, prompt) => {
     Last.fm track wiki: ${lastfm?.trackWiki || "N/A"}
     Last.fm artist wiki: ${lastfm?.artistWiki || "N/A"}
 
-    --- Recently Played Tracks ---
+    --- Recently Played Tracks (Most recent first) ---
     ${lastPlayedList || "N/A"}
 
     --- All Tags from Recently Played ---

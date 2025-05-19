@@ -13,7 +13,6 @@ import { router as timeslotRouter } from "./controllers/timeslot.controller.js";
 import sessionStore from './sessionStore.js'; // Import the session store
 import db from './dbPG.js';
 import djUsers from "./djUsers.js";
-import { time } from "console";
 
 
 const port = process.env.PORT || 8989;
