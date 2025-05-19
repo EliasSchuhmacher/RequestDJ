@@ -71,7 +71,7 @@ Good reasons to reject include the following rules:
     3.  Any songs with clearly childish titles, intended for children (Also consider this for other languages).
 	4.	Songs in niche languages (e.g., Arabic, Korean, Hindi) that aren’t globally popular or recognizable. Swedish and English are preferred, but international hits are okay.
 	5.	Obscure and unrecognizable songs — if the popularity is very low (e.g., below 30) it should most likely be rejected.
-	6.	Extremely long tracks (e.g., 300 seconds)
+	6.	Extremely long tracks. Anything above 5 minutes (300 seconds) is too long.
 	7.	Overtly explicit songs that might make the room uncomfortable unless they are known hits.
     8.  Reject any song associated with hate groups, war propaganda, or ideologies that are inappropriate or offensive in a public setting (e.g., Nazi music, extremist anthems). Even if these songs seem neutral based on genre or metadata, they must be blocked.
     9.  Reject any live versions / live recordings of songs
