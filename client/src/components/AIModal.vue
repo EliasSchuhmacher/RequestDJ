@@ -8,7 +8,7 @@
   >
     <div class="modal-dialog">
       <div class="modal-content bg-dark text-light">
-        <div class="modal-header border-secondary">
+        <div class="modal-header border-dark">
           <h5 id="aiSettingsModalLabel" class="modal-title">AI Settings</h5>
           <button
             type="button"
@@ -17,8 +17,8 @@
             aria-label="Close"
           ></button>
         </div>
-        <div class="modal-body">
-          <label for="aiPrompt" class="form-label lead text-light custom-label">Here you can set your own custom AI prompt. The prompt will act as instructions for the AI model when deciding whether to accept a song or not. Please make sure to keep the beginning and end of the prompt. Modify the rules as needed. For example, if you do not want to accept any rap songs, simply write a new rule: "No rap music"</label>
+        <div class="modal-body pt-0 pb-1">
+          <label for="aiPrompt" class="form-label text-light custom-label pb-2">Here you can set your own custom AI prompt. The prompt will act as instructions for the AI model when deciding whether to accept a song or not. Please make sure to keep the beginning and end of the prompt. Modify the rules as needed. For example, if you do not want to accept any rap songs, simply write a new rule: "No rap music"</label>
           <textarea
             id="aiPrompt"
             v-model="localAIPrompt"
@@ -26,28 +26,25 @@
             rows="20"
           ></textarea>
         </div>
-        <div class="modal-footer border-secondary">
+        <div class="modal-footer border-dark p-0">
+          <div class="btn-group w-100 p-3 shadow" role="group">
             <button
-            type="button"
-            class="btn btn-outline-light"
-            @click="resetToDefault"
-          >
-            Reset to Default
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-light"
-            data-bs-dismiss="modal"
-          >
-            Close
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            @click="saveAIPrompt"
-          >
-            Save Changes
-          </button>
+              type="button"
+              class="btn text-light btn-reset-gray"
+              @click="resetToDefault"
+            >
+              <i class="fas fa-undo me-1"></i>
+              Reset to Default
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="saveAIPrompt"
+            >
+              <i class="fas fa-save me-2"></i>
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -71,7 +68,7 @@ Good reasons to reject include the following rules:
     3.  Any songs with clearly childish titles, intended for children (Also consider this for other languages).
 	4.	Songs in niche languages (e.g., Arabic, Korean, Hindi) that aren’t globally popular or recognizable. Swedish and English are preferred, but international hits are okay.
 	5.	Obscure and unrecognizable songs — if the popularity is very low (e.g., below 30) it should most likely be rejected.
-	6.	Extremely long tracks. Anything above 5 minutes (300 seconds) is too long.
+	6.	Extremely long tracks. Above 5 minutes (300 seconds) is too long, unless it is an extremely popular and well known track. Anything above 6 minutes (360 seconds), should always be rejected. If this is the reason for rejection, suggest finding a shorter version/radio edit in the response reason.
 	7.	Overtly explicit songs that might make the room uncomfortable unless they are known hits.
     8.  Reject any song associated with hate groups, war propaganda, or ideologies that are inappropriate or offensive in a public setting (e.g., Nazi music, extremist anthems). Even if these songs seem neutral based on genre or metadata, they must be blocked.
     9.  Reject any live versions / live recordings of songs
@@ -163,10 +160,22 @@ Start the response with a chain of reasoning where all the points/rules are cons
 
 <style scoped>
 .custom-label {
-  font-size: 0.95rem; /* Smaller font size for the label */
+  font-size: 0.9rem; /* Smaller font size for the label */
 }
 
 .custom-textarea {
   font-size: 0.8rem; /* Smaller font size for the textarea */
+}
+.btn-reset-gray {
+  background-color: #3a3a3a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-reset-gray:hover,
+.btn-reset-gray:focus {
+  background-color: #505050;
+  color: #fff;
+  border-color: #666;
 }
 </style>

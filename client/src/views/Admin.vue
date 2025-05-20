@@ -64,7 +64,7 @@
       </transition-group>
       <p
         v-if="incomingSongRequests.length === 0"
-        class="lead fst-italic mt-3"
+        class="fst-italic mt-3"
       >
         Waiting for requests, scan the QR code to send a song request...
       </p>
