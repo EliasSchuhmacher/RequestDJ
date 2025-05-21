@@ -18,11 +18,11 @@
           ></button>
         </div>
         <div class="modal-body pt-0 pb-1">
-          <label for="aiPrompt" class="form-label text-light custom-label pb-2">Here you can set your own custom AI prompt. The prompt will act as instructions for the AI model when deciding whether to accept a song or not. Please make sure to keep the beginning and end of the prompt. Modify the rules as needed. For example, if you do not want to accept any rap songs, simply write a new rule: "No rap music"</label>
+          <label for="aiPrompt" class="form-label custom-label pb-2">Here you can set your own custom AI prompt. The prompt will act as instructions for the AI model when deciding whether to accept a song or not. Please make sure to keep the beginning and end of the prompt. Modify the rules as needed. For example, if you do not want to accept any rap songs, simply write a new rule: "No rap music"</label>
           <textarea
             id="aiPrompt"
             v-model="localAIPrompt"
-            class="form-control bg-tertiary-custom text-light border-dark custom-textarea"
+            class="form-control border-dark custom-textarea"
             rows="20"
           ></textarea>
         </div>
@@ -161,10 +161,13 @@ Start the response with a chain of reasoning where all the points/rules are cons
 <style scoped>
 .custom-label {
   font-size: 0.9rem; /* Smaller font size for the label */
+  color: #a8a8a8; /* Soft light gray for label/paragraph */
 }
 
 .custom-textarea {
   font-size: 0.8rem; /* Smaller font size for the textarea */
+  color: #c8c8cb; /* Light gray for textarea text */
+  background-color: #41464b; /* Dark background for textarea */
 }
 .btn-reset-gray {
   background-color: #3a3a3a;
