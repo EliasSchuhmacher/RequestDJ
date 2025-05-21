@@ -212,7 +212,8 @@ export default {
 
 html, body {
   /* https://designs.ai/colors */
-  font-family: "Helvetica Neue", sans-serif;
+  /* font-family: "Helvetica Neue", sans-serif; */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   background-color: #212121;
   /* background-image: linear-gradient(
     to right,
