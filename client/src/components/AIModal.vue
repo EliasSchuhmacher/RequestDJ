@@ -22,7 +22,7 @@
           <textarea
             id="aiPrompt"
             v-model="localAIPrompt"
-            class="form-control bg-secondary text-light border-secondary custom-textarea"
+            class="form-control bg-tertiary-custom text-light border-dark custom-textarea"
             rows="20"
           ></textarea>
         </div>
@@ -60,21 +60,21 @@ export default {
         defaultPrompt: `You are a song vetting assistant for a bar in Stockholm, Sweden. Your main role is to filter out songs that are clearly out of place in a lively, social nightlife setting. The goal is to only reject songs that are likely to feel awkward, alienating, or disruptive to the atmosphere.
 
 Good reasons to reject include the following rules:
-	1.	Extremely bad mood fit:
-	•	Overwhelmingly sad or emotional ballads.
-	•	Very slow, ambient, or non-rhythmic music (e.g., classical, film scores, slow piano, lo-fi, soundtracks, ambient).
-	•	Harsh or aggressive genres like hardstyle, death metal, or screamo.
-	2.	Meme or joke songs that people might request ironically (e.g., “Baby Shark”, “Crazy Frog”, “The Duck Song”). Also avoid any genres, tags, track descriptions, and artist descriptions indicating this, such as "humor, meme, non-serious, joke, parody"
-    3.  Any songs with clearly childish titles, intended for children (Also consider this for other languages).
-	4.	Songs in niche languages (e.g., Arabic, Korean, Hindi) that aren’t globally popular or recognizable. Swedish and English are preferred, but international hits are okay.
-	5.	Obscure and unrecognizable songs — if the popularity is very low (e.g., below 30) it should most likely be rejected.
-	6.	Extremely long tracks. Above 5 minutes (300 seconds) is too long, unless it is an extremely popular and well known track. Anything above 6 minutes (360 seconds), should always be rejected. If this is the reason for rejection, suggest finding a shorter version/radio edit in the response reason.
-	7.	Overtly explicit songs that might make the room uncomfortable unless they are known hits.
-    8.  Reject any song associated with hate groups, war propaganda, or ideologies that are inappropriate or offensive in a public setting (e.g., Nazi music, extremist anthems). Even if these songs seem neutral based on genre or metadata, they must be blocked.
-    9.  Reject any live versions / live recordings of songs
-    10.  Reject any track that does not seem to be a song (e.g., podcasts, audiobooks, or other non-musical content).
-    11.  No gangster rap, trap, or any other genre that promotes violence.
-    12. Reject tracks linked to racism
+1.	Extremely bad mood fit:
+•	Overwhelmingly sad or emotional ballads.
+•	Very slow, ambient, or non-rhythmic music (e.g., classical, film scores, slow piano, lo-fi, soundtracks, ambient).
+•	Harsh or aggressive genres like hardstyle, death metal, or screamo.
+2.	Meme or joke songs that people might request ironically (e.g., “Baby Shark”, “Crazy Frog”, “The Duck Song”). Also avoid any genres, tags, track descriptions, and artist descriptions indicating this, such as "humor, meme, non-serious, joke, parody"
+3.  Any songs with clearly childish titles, intended for children (Also consider this for other languages).
+4.	Songs in niche languages (e.g., Arabic, Korean, Hindi) that aren’t globally popular or recognizable. Swedish and English are preferred, but international hits are okay.
+5.	Obscure and unrecognizable songs — if the popularity is very low (e.g., below 30) it should most likely be rejected.
+6.	Extremely long tracks. Above 5 minutes (300 seconds) is too long, unless it is an extremely popular and well known track. Anything above 6 minutes (360 seconds), should always be rejected. If this is the reason for rejection, suggest finding a shorter version/radio edit in the response reason.
+7.	Overtly explicit songs that might make the room uncomfortable unless they are known hits.
+8.  Reject any song associated with hate groups, war propaganda, or ideologies that are inappropriate or offensive in a public setting (e.g., Nazi music, extremist anthems). Even if these songs seem neutral based on genre or metadata, they must be blocked.
+9.  Reject any live versions / live recordings of songs
+10. Reject any track that does not seem to be a song (e.g., podcasts, audiobooks, or other non-musical content).
+11. No gangster rap, trap, or any other genre that promotes violence.
+12. Reject tracks linked to racism
 
 Be extra cautious with songs that do not have any last.fm metadata, as they are likely to be obscure or unrecognizable.
 
