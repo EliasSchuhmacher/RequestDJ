@@ -304,6 +304,7 @@ export const fetchRecentlyPlayedWithTags = async (username, limit = 4) => {
 const evaluateSongWithAI = async (songMetadata, recentlyPlayed, prompt) => {
   const {
     title,
+    artist,
     genres,
     duration,
     popularity,
@@ -325,10 +326,11 @@ const evaluateSongWithAI = async (songMetadata, recentlyPlayed, prompt) => {
   ];
 
   const songString = `
-    Title & Artist: ${title}
+    Title: ${title}
+    Artist: ${artist?.join(", ") || "N/A"}
     Genre: ${genres?.join(", ") || "N/A"}
     Duration: ${duration || "N/A"} seconds
-    Popularity: ${popularity || "N/A"} (0-100)
+    Spotify Popularity Score: ${popularity || "N/A"} (0-100)
     Explicit: ${explicit ? "True" : "False"}
     Last.fm tags: ${lastfm?.tags?.join(", ") || "N/A"}
     Last.fm track wiki: ${lastfm?.trackWiki || "N/A"}

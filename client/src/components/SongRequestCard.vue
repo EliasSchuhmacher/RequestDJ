@@ -115,11 +115,17 @@
           type="button"
           class="btn btn-sm ms-2 me-2 p-0 align-baseline position-absolute text-muted end-0"
           data-bs-toggle="tooltip"
-          title="Click to queue this song manually"
-          @click="$emit('submit-comingup', songRequest.id)"
+          :title="manuallyQueued ? 'Click to queue again' : 'Click to queue this song manually'"
+          @click="queueManually"
         >
-          Accept
-          <i class="fas fa-forward me-1"></i>
+          <div v-if="!manuallyQueued">
+            Accept
+            <i class="fas fa-forward me-1"></i>
+          </div>
+          <div v-else>
+            Accepted
+            <i class="fas fa-check me-1"></i>
+          </div>
         </button>
       </div>
       <div class="lighter-gray small mt-1 text-center">
@@ -150,7 +156,8 @@ import { Tooltip } from 'bootstrap';
     emits: ['submit-comingup', 'set-playing', 'submit-remove'],
     data() {
       return {
-        timeAgo: ''
+        timeAgo: '',
+        manuallyQueued: false, // Used to track if an AI rejected song was manually queued
       };
     },
     mounted() {
@@ -205,6 +212,10 @@ import { Tooltip } from 'bootstrap';
           // The page is visible, update the time ago
           this.updateTimeAgo();
         }
+      },
+      queueManually() {
+        this.manuallyQueued = true;
+        this.$emit('submit-comingup', this.songRequest.id);
       },
       disposeTooltips() {
         console.log('disposing tooltips');

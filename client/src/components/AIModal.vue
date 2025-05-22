@@ -89,10 +89,11 @@ When deciding, try to consider which tracks have been recently played. Do not pl
 Otherwise, accept the song. A wide variety of pop, dance, electronic, rock, house, and indie songs are welcome.
 
 You will have access to the following information about the song:
-Title & Artist:
+Title:
+Artist:
 Artist Genres (if available):
 Duration (In seconds):
-Popularity (0-100):
+Spotify Popularity Score (0-100):
 Explicit (True/False):
 Last.fm tags (if available):
 Last.fm track wiki (if available):
