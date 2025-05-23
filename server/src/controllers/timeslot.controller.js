@@ -426,38 +426,52 @@ export const queueSongInSpotify = async (song, user) => {
   const url = `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`;
 
   const tryQueue = async (accessToken) => {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Failed to queue song in Spotify:", errorData);
+      if (!response.ok) {
+        let errorData;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          errorData = await response.json();
+        } else {
+          // Not JSON, get text instead
+          const errorText = await response.text();
+          errorData = { error: { message: errorText, reason: "UNKNOWN" } };
+        }
+        console.error("Failed to queue song in Spotify:", errorData);
 
-      if (response.status === 401) {
-        // Token expired, try refreshing
-        console.log("Access token expired, refreshing...");
-        const newToken = await refreshSpotifyAccessToken(user);
-        return tryQueue(newToken);
+        if (response.status === 401) {
+          // Token expired, try refreshing
+          console.log("Access token expired, refreshing...");
+          const newToken = await refreshSpotifyAccessToken(user);
+          return tryQueue(newToken);
+        }
+
+        // Special case: No active device
+        if (response.status === 404 && errorData.error.reason === "NO_ACTIVE_DEVICE") {
+          return {
+            success: false,
+            reason: "NO_ACTIVE_DEVICE",
+            message: errorData.error.message,
+          };
+        }
+
+        return { success: false, message: errorData.error.message };
       }
 
-      // Special case: No active device
-      if (response.status === 404 && errorData.error.reason === "NO_ACTIVE_DEVICE") {
-        return {
-          success: false,
-          reason: "NO_ACTIVE_DEVICE",
-          message: errorData.error.message,
-        };
-      }
-
-      return { success: false, message: errorData.error.message };
+      return { success: true };
+    } catch (err) {
+      // Catch any unexpected errors (network, parsing, etc.)
+      console.error("Unexpected error in tryQueue:", err);
+      return { success: false, message: err.message || "Unknown error" };
     }
-
-    return { success: true };
   };
 
   return tryQueue(spotifyAccessToken);
