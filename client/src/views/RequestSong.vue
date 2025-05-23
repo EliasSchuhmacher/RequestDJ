@@ -179,9 +179,9 @@ export default {
     countdown: 0,
     countdownInterval: null,
     requestAnotherSongDisabled: false,
-    // timeoutLength: 3 * 60 * 1000,
+    timeoutLength: 3 * 60 * 1000,
     // timeoutLength: 5 * 60 * 1000,
-    timeoutLength: 30 * 1000,
+    // timeoutLength: 30 * 1000,
     rejectedTimeoutLength: 30 * 1000, // Seconds
     token: "",
     debouncedSearch: null, // Placeholder for the debounced search function
@@ -314,7 +314,8 @@ export default {
       if (!lastRequestTime) return;
 
       const elapsed = Date.now() - lastRequestTime;
-      const remaining = this.timeoutLength - elapsed;
+      const isRejected = this.$store.state.songRequestResponse === "rejected";
+      const remaining = (isRejected ? this.rejectedTimeoutLength : this.timeoutLength) - elapsed;
 
       if (remaining > 0) {
         this.requestSent = true;
@@ -494,13 +495,13 @@ export default {
       this.errorMessage = "";
     
       // Check if the user has made a request in the last x minutes
-      const lastRequestTime = localStorage.getItem("lastRequestTime");
+      // const lastRequestTime = localStorage.getItem("lastRequestTime");
       const currentTime = new Date().getTime();
-      if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
-        console.log("Please wait before making another request.");
-        this.errorMessage = "Please wait before making another request.";
-        return;
-      }
+      // if (lastRequestTime && currentTime - lastRequestTime < this.timeoutLength) {
+      //   console.log("Please wait before making another request.");
+      //   this.errorMessage = "Please wait before making another request.";
+      //   return;
+      // }
 
       // Disable the request button and start the countdown
       const now = Date.now();
