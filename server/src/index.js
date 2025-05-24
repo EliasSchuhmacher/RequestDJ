@@ -13,12 +13,16 @@ import { router as timeslotRouter } from "./controllers/timeslot.controller.js";
 import sessionStore from './sessionStore.js'; // Import the session store
 import db from './dbPG.js';
 import djUsers from "./djUsers.js";
+import setupSecurity from './middleware/security.js';
 
 
 const port = process.env.PORT || 8989;
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
+
+// Set up security middleware early in the chain
+setupSecurity(app);
 
 //make IO accessible from controllers
 app.set("io", io);
@@ -62,8 +66,12 @@ const sessionConf = expressSession({
   resave: false,
   saveUninitialized: true,
   store: sessionStore,
-  // cookie: { maxAge: 6 * 60 * 60 * 1000 }, // 6 hours
-  cookie: { maxAge: 48 * 60 * 60 * 1000 }, // 48 hours
+  cookie: { 
+    maxAge: 48 * 60 * 60 * 1000, // 48 hours
+    secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
+    sameSite: 'lax', // Protect against CSRF
+    httpOnly: true, // Protect against XSS
+  },
 });
 
 app.use(sessionConf);
@@ -137,6 +145,19 @@ io.on("connection", (socket) => {
       // console.log("WebSocket connection without an authenticated user (QR code scan)");
     }
   });
+});
+
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Gracefully shutdown in case of critical errors
+  if (error.message.includes('EADDRINUSE') || error.message.includes('EACCES')) {
+    process.exit(1);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 server.listen(port, () => {

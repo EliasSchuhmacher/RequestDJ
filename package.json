@@ -19,8 +19,6 @@
     "start": "npm run client:build && npm run server:start"
   },
   "version": "1.0.0",
-  "dependencies": {},
   "devDependencies": {
-    "cross-env": "^7.0.3"
   }
 }
